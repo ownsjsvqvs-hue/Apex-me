@@ -1,0 +1,1241 @@
+--============================================================
+--                    APEX SCRIPT V26.5
+--            TIME BOMB DUELS EDITION • BY VEX
+--
+--  RE-ENGINEERED PHYSICS • REAL-TIME VELOCITY INJECTION
+--  ZERO LAG • SNAPPY WALL HOP & INSTANT BOMB PROXIMITY TRANSFER
+--============================================================
+
+--============================================================
+-- SERVICES
+--============================================================
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Teams = game:GetService("Teams")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--============================================================
+-- CONFIG
+--============================================================
+
+local VERSION = "V26.5"
+
+local VALID_KEYS = {
+	["apex"] = true,
+	["vex"] = true,
+	["vexowner"] = true
+}
+
+local MIN_SPEED = 16
+local MAX_SPEED = 140
+
+local MIN_JUMP = 30
+local MAX_JUMP = 180
+local NORMAL_GAME_JUMP = 50
+
+local MIN_FOV = 50
+local MAX_FOV = 120
+
+--============================================================
+-- THEME
+--============================================================
+
+local Theme = {
+	Background = Color3.fromRGB(8, 8, 12),
+	Sidebar = Color3.fromRGB(14, 13, 20),
+	Card = Color3.fromRGB(22, 19, 32),
+	Card2 = Color3.fromRGB(32, 28, 48),
+
+	Accent = Color3.fromRGB(168, 65, 255),
+	Accent2 = Color3.fromRGB(194, 105, 255),
+
+	Text = Color3.fromRGB(255, 255, 255),
+	Muted = Color3.fromRGB(160, 150, 185),
+
+	Success = Color3.fromRGB(65, 225, 130),
+	Danger = Color3.fromRGB(230, 65, 80),
+	Warning = Color3.fromRGB(245, 180, 60)
+}
+
+--============================================================
+-- STATE
+--============================================================
+
+local State = {
+	Authenticated = false,
+	MainOpen = false,
+	Destroyed = false,
+
+	SpeedEnabled = false,
+	JumpEnabled = false,
+	WallHopEnabled = false,
+	HitboxEnabled = false,
+	BombTransferEnabled = false,
+	FPSEnabled = false,
+
+	Speed = 32,
+	JumpPower = 90,
+	FOV = 75,
+
+	Accent = Theme.Accent,
+	Loading = false
+}
+
+--============================================================
+-- UI HELPERS
+--============================================================
+
+local function Corner(obj, radius)
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0, radius or 10)
+	c.Parent = obj
+	return c
+end
+
+local function Stroke(obj, color, transparency, thickness)
+	local s = Instance.new("UIStroke")
+	s.Color = color
+	s.Transparency = transparency or 0
+	s.Thickness = thickness or 1
+	s.Parent = obj
+	return s
+end
+
+local function Tween(obj, props, time)
+	local t = TweenService:Create(
+		obj,
+		TweenInfo.new(time or 0.12, Enum.EasingStyle.Quart, Enum.EasingDirection.Out),
+		props
+	)
+	return t
+end
+
+local function MakeText(parent, text, size, color)
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Text = text
+	label.TextColor3 = color or Theme.Text
+	label.TextSize = size or 14
+	label.Font = Enum.Font.GothamMedium
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.TextYAlignment = Enum.TextYAlignment.Center
+	label.Parent = parent
+	return label
+end
+
+local function MakeButton(parent, text)
+	local button = Instance.new("TextButton")
+	button.AutoButtonColor = false
+	button.BackgroundColor3 = Theme.Card
+	button.BorderSizePixel = 0
+	button.Text = text
+	button.TextColor3 = Theme.Text
+	button.TextSize = 13
+	button.Font = Enum.Font.GothamMedium
+	button.Parent = parent
+
+	Corner(button, 10)
+
+	button.MouseEnter:Connect(function()
+		if button.BackgroundColor3 == Theme.Card then
+			Tween(button, {BackgroundColor3 = Theme.Card2}, 0.1):Play()
+		end
+	end)
+
+	button.MouseLeave:Connect(function()
+		if button.BackgroundColor3 == Theme.Card2 then
+			Tween(button, {BackgroundColor3 = Theme.Card}, 0.1):Play()
+		end
+	end)
+
+	return button
+end
+
+local function MakeCard(parent, height)
+	local card = Instance.new("Frame")
+	card.BackgroundColor3 = Theme.Card
+	card.BorderSizePixel = 0
+	card.Size = UDim2.new(1, -12, 0, height)
+	card.Parent = parent
+	Corner(card, 12)
+	Stroke(card, Theme.Accent, 0.7, 1)
+	return card
+end
+
+--============================================================
+-- SCREEN GUI
+--============================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "ApexV265"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+Gui.Parent = PlayerGui
+
+--============================================================
+-- KEY WINDOW
+--============================================================
+
+local KeyWindow = Instance.new("Frame")
+KeyWindow.Name = "KeyWindow"
+KeyWindow.AnchorPoint = Vector2.new(0.5, 0.5)
+KeyWindow.Position = UDim2.fromScale(0.5, 0.5)
+KeyWindow.Size = UDim2.fromOffset(360, 240)
+KeyWindow.BackgroundColor3 = Theme.Background
+KeyWindow.BorderSizePixel = 0
+KeyWindow.Parent = Gui
+
+Corner(KeyWindow, 16)
+Stroke(KeyWindow, Theme.Accent, 0.2, 2)
+
+local KeyTitle = MakeText(KeyWindow, "APEX SCRIPT", 22, Theme.Text)
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.Position = UDim2.fromScale(0.08, 0.08)
+KeyTitle.Size = UDim2.fromScale(0.75, 0.12)
+
+local KeySubtitle = MakeText(KeyWindow, "V26.5 • TIME BOMB DUELS", 10, Theme.Muted)
+KeySubtitle.Position = UDim2.fromScale(0.08, 0.20)
+KeySubtitle.Size = UDim2.fromScale(0.8, 0.08)
+
+local KeyBox = Instance.new("TextBox")
+KeyBox.Name = "KeyInput"
+KeyBox.BackgroundColor3 = Theme.Card
+KeyBox.BorderSizePixel = 0
+KeyBox.ClearTextOnFocus = false
+KeyBox.PlaceholderText = "Enter your key"
+KeyBox.PlaceholderColor3 = Theme.Muted
+KeyBox.Text = ""
+KeyBox.TextColor3 = Theme.Text
+KeyBox.TextSize = 14
+KeyBox.Font = Enum.Font.GothamMedium
+KeyBox.Position = UDim2.fromScale(0.08, 0.35)
+KeyBox.Size = UDim2.fromScale(0.84, 0.20)
+KeyBox.Parent = KeyWindow
+
+Corner(KeyBox, 10)
+Stroke(KeyBox, Theme.Accent, 0.5, 1)
+
+local KeyStatus = MakeText(KeyWindow, "", 11, Theme.Danger)
+KeyStatus.Position = UDim2.fromScale(0.08, 0.58)
+KeyStatus.Size = UDim2.fromScale(0.84, 0.10)
+
+local EnterButton = MakeButton(KeyWindow, "ENTER KEY")
+EnterButton.BackgroundColor3 = Theme.Accent
+EnterButton.Position = UDim2.fromScale(0.08, 0.72)
+EnterButton.Size = UDim2.fromScale(0.84, 0.18)
+
+--============================================================
+-- LOADING WINDOW
+--============================================================
+
+local LoadingWindow = Instance.new("Frame")
+LoadingWindow.Name = "LoadingWindow"
+LoadingWindow.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingWindow.Position = UDim2.fromScale(0.5, 0.5)
+LoadingWindow.Size = UDim2.fromOffset(390, 210)
+LoadingWindow.BackgroundColor3 = Theme.Background
+LoadingWindow.BorderSizePixel = 0
+LoadingWindow.Visible = false
+LoadingWindow.Parent = Gui
+
+Corner(LoadingWindow, 16)
+Stroke(LoadingWindow, Theme.Accent, 0.2, 2)
+
+local LoadingTitle = MakeText(LoadingWindow, "APEX SYSTEM", 21, Theme.Text)
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.Position = UDim2.fromScale(0.08, 0.10)
+LoadingTitle.Size = UDim2.fromScale(0.84, 0.15)
+
+local LoadingStatus = MakeText(LoadingWindow, "Initializing...", 11, Theme.Muted)
+LoadingStatus.Position = UDim2.fromScale(0.08, 0.30)
+LoadingStatus.Size = UDim2.fromScale(0.84, 0.12)
+
+local LoadingBar = Instance.new("Frame")
+LoadingBar.BackgroundColor3 = Theme.Card2
+LoadingBar.BorderSizePixel = 0
+LoadingBar.Position = UDim2.fromScale(0.08, 0.52)
+LoadingBar.Size = UDim2.fromScale(0.84, 0.10)
+LoadingBar.Parent = LoadingWindow
+Corner(LoadingBar, 8)
+
+local LoadingFill = Instance.new("Frame")
+LoadingFill.BackgroundColor3 = Theme.Accent
+LoadingFill.BorderSizePixel = 0
+LoadingFill.Size = UDim2.fromScale(0, 1)
+LoadingFill.Parent = LoadingBar
+Corner(LoadingFill, 8)
+
+local LoadingPercent = MakeText(LoadingWindow, "0%", 13, Theme.Accent)
+LoadingPercent.Font = Enum.Font.GothamBold
+LoadingPercent.TextXAlignment = Enum.TextXAlignment.Right
+LoadingPercent.Position = UDim2.fromScale(0.08, 0.68)
+LoadingPercent.Size = UDim2.fromScale(0.84, 0.12)
+
+--============================================================
+-- MAIN WINDOW
+--============================================================
+
+local Main = Instance.new("Frame")
+Main.Name = "MainWindow"
+Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.fromScale(0.5, 0.5)
+Main.Size = UDim2.new(0.65, 0, 0.68, 0)
+Main.BackgroundColor3 = Theme.Background
+Main.BorderSizePixel = 0
+Main.Visible = false
+Main.Parent = Gui
+
+Corner(Main, 16)
+Stroke(Main, Theme.Accent, 0.25, 2)
+
+local MainConstraint = Instance.new("UISizeConstraint")
+MainConstraint.MinSize = Vector2.new(520, 350)
+MainConstraint.MaxSize = Vector2.new(760, 500)
+MainConstraint.Parent = Main
+
+--============================================================
+-- TOP BAR
+--============================================================
+
+local Top = Instance.new("Frame")
+Top.BackgroundTransparency = 1
+Top.Position = UDim2.fromScale(0.025, 0.02)
+Top.Size = UDim2.fromScale(0.95, 0.10)
+Top.Parent = Main
+
+local Logo = MakeText(Top, "APEX", 14, Theme.Text)
+Logo.BackgroundColor3 = Theme.Accent
+Logo.BackgroundTransparency = 0
+Logo.Font = Enum.Font.GothamBold
+Logo.TextXAlignment = Enum.TextXAlignment.Center
+Logo.Position = UDim2.fromScale(0, 0)
+Logo.Size = UDim2.fromScale(0.09, 0.80)
+Corner(Logo, 8)
+
+local Title = MakeText(Top, "APEX SCRIPT", 18, Theme.Text)
+Title.Font = Enum.Font.GothamBold
+Title.Position = UDim2.fromScale(0.11, 0.02)
+Title.Size = UDim2.fromScale(0.50, 0.40)
+
+local Subtitle = MakeText(Top, "V26.5 • INSTANT RESPONSE ENGINE", 10, Theme.Muted)
+Subtitle.Position = UDim2.fromScale(0.11, 0.47)
+Subtitle.Size = UDim2.fromScale(0.50, 0.30)
+
+local CloseButton = MakeButton(Top, "×")
+CloseButton.BackgroundColor3 = Theme.Accent
+CloseButton.TextSize = 22
+CloseButton.Position = UDim2.fromScale(0.93, 0)
+CloseButton.Size = UDim2.fromScale(0.07, 0.80)
+
+--============================================================
+-- SIDEBAR
+--============================================================
+
+local Sidebar = Instance.new("Frame")
+Sidebar.BackgroundColor3 = Theme.Sidebar
+Sidebar.BorderSizePixel = 0
+Sidebar.Position = UDim2.fromScale(0.025, 0.14)
+Sidebar.Size = UDim2.fromScale(0.23, 0.83)
+Sidebar.Parent = Main
+
+Corner(Sidebar, 12)
+Stroke(Sidebar, Theme.Accent, 0.75, 1)
+
+local SidebarPadding = Instance.new("UIPadding")
+SidebarPadding.PaddingTop = UDim.new(0, 10)
+SidebarPadding.PaddingLeft = UDim.new(0, 8)
+SidebarPadding.PaddingRight = UDim.new(0, 8)
+SidebarPadding.Parent = Sidebar
+
+local SidebarLayout = Instance.new("UIListLayout")
+SidebarLayout.Padding = UDim.new(0, 6)
+SidebarLayout.SortOrder = Enum.SortOrder.LayoutOrder
+SidebarLayout.Parent = Sidebar
+
+local NavTitle = MakeText(Sidebar, "NAVIGATION", 9, Theme.Muted)
+NavTitle.Font = Enum.Font.GothamBold
+NavTitle.Size = UDim2.new(1, 0, 0, 22)
+NavTitle.LayoutOrder = 1
+
+--============================================================
+-- CONTENT
+--============================================================
+
+local Content = Instance.new("Frame")
+Content.BackgroundTransparency = 1
+Content.Position = UDim2.fromScale(0.275, 0.14)
+Content.Size = UDim2.fromScale(0.70, 0.83)
+Content.Parent = Main
+
+local Pages = {}
+
+local function CreatePage(name)
+	local page = Instance.new("ScrollingFrame")
+	page.Name = name
+	page.BackgroundTransparency = 1
+	page.BorderSizePixel = 0
+	page.Size = UDim2.fromScale(1, 1)
+	page.ScrollBarThickness = 4
+	page.ScrollBarImageColor3 = Theme.Accent
+	page.ScrollingDirection = Enum.ScrollingDirection.Y
+	page.CanvasSize = UDim2.fromOffset(0, 0)
+	page.Visible = false
+	page.Parent = Content
+
+	local padding = Instance.new("UIPadding")
+	padding.PaddingTop = UDim.new(0, 4)
+	padding.PaddingBottom = UDim.new(0, 20)
+	padding.PaddingLeft = UDim.new(0, 2)
+	padding.PaddingRight = UDim.new(0, 8)
+	padding.Parent = page
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 10)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = page
+
+	layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+		page.CanvasSize = UDim2.fromOffset(0, layout.AbsoluteContentSize.Y + 25)
+	end)
+
+	Pages[name] = page
+	return page
+end
+
+local HomePage = CreatePage("Home")
+local ScriptsPage = CreatePage("Scripts")
+local WallPage = CreatePage("WallHop")
+local SettingsPage = CreatePage("Settings")
+
+--============================================================
+-- NAVIGATION LOGIC
+--============================================================
+
+local NavButtons = {}
+local CurrentPage
+
+local function SelectPage(page, button)
+	for _, p in pairs(Pages) do
+		p.Visible = false
+	end
+	for _, b in ipairs(NavButtons) do
+		b.BackgroundColor3 = Theme.Card
+		b.TextColor3 = Theme.Muted
+	end
+	page.Visible = true
+	button.BackgroundColor3 = Theme.Accent
+	button.TextColor3 = Theme.Text
+	CurrentPage = page
+end
+
+local function AddNav(name, page)
+	local button = MakeButton(Sidebar, name)
+	button.Size = UDim2.new(1, 0, 0, 38)
+	button.TextColor3 = Theme.Muted
+	button.Font = Enum.Font.GothamBold
+	button.LayoutOrder = #NavButtons + 2
+
+	table.insert(NavButtons, button)
+	button.Activated:Connect(function()
+		SelectPage(page, button)
+	end)
+	return button
+end
+
+local HomeButton = AddNav("HOME", HomePage)
+local ScriptsButton = AddNav("SCRIPTS", ScriptsPage)
+local WallButton = AddNav("WALL HOP", WallPage)
+local SettingsButton = AddNav("SETTINGS", SettingsPage)
+
+--============================================================
+-- TOGGLE HELPER
+--============================================================
+
+local function AddToggle(parent, title, description, callback)
+	local card = MakeCard(parent, 74)
+
+	local titleLabel = MakeText(card, title, 13, Theme.Text)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.Position = UDim2.fromScale(0.04, 0.10)
+	titleLabel.Size = UDim2.fromScale(0.55, 0.25)
+
+	local descriptionLabel = MakeText(card, description, 10, Theme.Muted)
+	descriptionLabel.Position = UDim2.fromScale(0.04, 0.40)
+	descriptionLabel.Size = UDim2.fromScale(0.55, 0.45)
+	descriptionLabel.TextWrapped = true
+
+	local status = MakeText(card, "OFF", 10, Theme.Muted)
+	status.Font = Enum.Font.GothamBold
+	status.Position = UDim2.fromScale(0.60, 0.32)
+	status.Size = UDim2.fromScale(0.16, 0.30)
+	status.TextXAlignment = Enum.TextXAlignment.Right
+
+	local toggle = MakeButton(card, "")
+	toggle.Position = UDim2.fromScale(0.80, 0.25)
+	toggle.Size = UDim2.fromScale(0.15, 0.48)
+
+	local knob = Instance.new("Frame")
+	knob.BackgroundColor3 = Theme.Text
+	knob.BorderSizePixel = 0
+	knob.Size = UDim2.fromScale(0.38, 0.64)
+	knob.Position = UDim2.fromScale(0.06, 0.18)
+	knob.Parent = toggle
+	Corner(knob, 20)
+
+	local enabled = false
+
+	local function Render()
+		if enabled then
+			Tween(toggle, {BackgroundColor3 = Theme.Success}, 0.1):Play()
+			Tween(knob, {Position = UDim2.fromScale(0.56, 0.18)}, 0.1):Play()
+			status.Text = "ON"
+			status.TextColor3 = Theme.Success
+		else
+			Tween(toggle, {BackgroundColor3 = Theme.Card2}, 0.1):Play()
+			Tween(knob, {Position = UDim2.fromScale(0.06, 0.18)}, 0.1):Play()
+			status.Text = "OFF"
+			status.TextColor3 = Theme.Muted
+		end
+	end
+
+	toggle.Activated:Connect(function()
+		enabled = not enabled
+		Render()
+		callback(enabled)
+	end)
+
+	Render()
+	return function(value)
+		enabled = value
+		Render()
+		callback(enabled)
+	end
+end
+
+--============================================================
+-- HOME PAGE
+--============================================================
+
+local Welcome = MakeCard(HomePage, 140)
+
+local WelcomeTitle = MakeText(Welcome, "WELCOME TO APEX", 18, Theme.Text)
+WelcomeTitle.Font = Enum.Font.GothamBold
+WelcomeTitle.Position = UDim2.fromScale(0.05, 0.10)
+WelcomeTitle.Size = UDim2.fromScale(0.90, 0.22)
+
+local WelcomeText = MakeText(Welcome, "V26.5 Core updated. Added 250 FPS optimizer with live telemetry HUD that hides completely when deactivated.", 11, Theme.Muted)
+WelcomeText.TextWrapped = true
+WelcomeText.Position = UDim2.fromScale(0.05, 0.36)
+WelcomeText.Size = UDim2.fromScale(0.90, 0.32)
+
+local ReadyText = MakeText(Welcome, "ENGINE V26.5 FULLY OPTIMIZED", 10, Theme.Success)
+ReadyText.Font = Enum.Font.GothamBold
+ReadyText.Position = UDim2.fromScale(0.05, 0.72)
+ReadyText.Size = UDim2.fromScale(0.90, 0.18)
+
+--============================================================
+-- STEPPER HELPER
+--============================================================
+
+local function MakeStepper(parent, title, minValue, maxValue, initialValue, stepSize, callback)
+	local card = MakeCard(parent, 76)
+
+	local titleLabel = MakeText(card, title, 13, Theme.Text)
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.Position = UDim2.fromScale(0.05, 0.12)
+	titleLabel.Size = UDim2.fromScale(0.50, 0.35)
+
+	local valueLabel = MakeText(card, tostring(initialValue), 13, Theme.Accent)
+	valueLabel.Font = Enum.Font.GothamBold
+	valueLabel.Position = UDim2.fromScale(0.05, 0.52)
+	valueLabel.Size = UDim2.fromScale(0.50, 0.35)
+
+	local minusBtn = MakeButton(card, "-")
+	minusBtn.TextSize = 16
+	minusBtn.Font = Enum.Font.GothamBold
+	minusBtn.Position = UDim2.fromScale(0.60, 0.20)
+	minusBtn.Size = UDim2.fromOffset(34, 34)
+
+	local plusBtn = MakeButton(card, "+")
+	plusBtn.TextSize = 16
+	plusBtn.Font = Enum.Font.GothamBold
+	plusBtn.Position = UDim2.fromScale(0.80, 0.20)
+	plusBtn.Size = UDim2.fromOffset(34, 34)
+
+	local currentValue = initialValue
+
+	local function UpdateVal(newVal)
+		currentValue = math.clamp(newVal, minValue, maxValue)
+		valueLabel.Text = tostring(currentValue)
+		callback(currentValue)
+	end
+
+	minusBtn.Activated:Connect(function()
+		UpdateVal(currentValue - stepSize)
+	end)
+
+	plusBtn.Activated:Connect(function()
+		UpdateVal(currentValue + stepSize)
+	end)
+
+	return card
+end
+
+--============================================================
+-- SCRIPTS PAGE
+--============================================================
+
+MakeStepper(
+	ScriptsPage,
+	"BYPASS SPEED",
+	MIN_SPEED,
+	MAX_SPEED,
+	State.Speed,
+	2,
+	function(value)
+		State.Speed = value
+	end
+)
+
+AddToggle(
+	ScriptsPage,
+	"Bypass Speed Boost",
+	"Direct velocity injection mechanism. Forces smooth, non-stuttering movement overrides.",
+	function(enabled)
+		State.SpeedEnabled = enabled
+	end
+)
+
+MakeStepper(
+	ScriptsPage,
+	"CUSTOM JUMP POWER",
+	MIN_JUMP,
+	MAX_JUMP,
+	State.JumpPower,
+	5,
+	function(value)
+		State.JumpPower = value
+	end
+)
+
+AddToggle(
+	ScriptsPage,
+	"Custom Jump Power",
+	"Direct state override for instantaneous jump response without heavy drag.",
+	function(enabled)
+		State.JumpEnabled = enabled
+	end
+)
+
+--============================================================
+-- WALL HOP PAGE
+--============================================================
+
+local WallStatus = MakeCard(WallPage, 115)
+local WallStateLabel = MakeText(WallStatus, "STATUS: OFF", 10, Theme.Muted)
+
+local WallTitle = MakeText(WallStatus, "TIME BOMB WALL HOP V10", 16, Theme.Text)
+WallTitle.Font = Enum.Font.GothamBold
+WallTitle.Position = UDim2.fromScale(0.05, 0.10)
+WallTitle.Size = UDim2.fromScale(0.90, 0.22)
+
+local WallInfo = MakeText(WallStatus, "Completely rewritten multi-ray casting engine with instant momentum redirection.", 10.5, Theme.Muted)
+WallInfo.TextWrapped = true
+WallInfo.Position = UDim2.fromScale(0.05, 0.36)
+WallInfo.Size = UDim2.fromScale(0.90, 0.40)
+
+WallStateLabel.Font = Enum.Font.GothamBold
+WallStateLabel.Position = UDim2.fromScale(0.05, 0.76)
+WallStateLabel.Size = UDim2.fromScale(0.90, 0.15)
+
+AddToggle(
+	WallPage,
+	"Combat Wall Hop V10",
+	"Instant bounce off any wall surface with zero delay or getting caught on geometry.",
+	function(enabled)
+		State.WallHopEnabled = enabled
+		if not enabled then
+			WallStateLabel.Text = "STATUS: OFF"
+			WallStateLabel.TextColor3 = Theme.Muted
+		else
+			WallStateLabel.Text = "STATUS: READY"
+			WallStateLabel.TextColor3 = Theme.Success
+		end
+	end
+)
+
+AddToggle(
+	WallPage,
+	"Enemy Hitboxes Visualizer",
+	"Highlights active enemy opponents only during duels/matches (excludes teammates and yourself).",
+	function(enabled)
+		State.HitboxEnabled = enabled
+	end
+)
+
+AddToggle(
+	WallPage,
+	"Proximity Bomb Transfer",
+	"Automatically interacts/passes the bomb when your hitbox touches an enemy's hitbox at close range.",
+	function(enabled)
+		State.BombTransferEnabled = enabled
+	end
+)
+
+--============================================================
+-- CHARACTER & WALL HOP V10 ENGINE (INSTANT VELOCITY)
+--============================================================
+
+local enemyHitboxes = {}
+
+local function ClearEnemyHitboxes()
+	for _, box in pairs(enemyHitboxes) do
+		if box and box.Parent then box:Destroy() end
+	end
+	enemyHitboxes = {}
+end
+
+-- Fine-tuned configurations for smooth execution
+local DETECTION_DISTANCE = 3.5  -- Scanning range for obstacles
+local WALL_UP_FORCE = 44        -- Smooth vertical launch velocity
+local BOUNCE_OUT_FORCE = 3      -- Clean repulsion to break friction stickiness
+local COOLDOWN_TIME = 0.18      -- Critical anti-lag timer (prevents spam stuttering)
+
+local IsOnCooldown = false
+
+UIS.JumpRequest:Connect(function()
+	if State.Destroyed or not State.WallHopEnabled then return end
+	if IsOnCooldown then return end
+	
+	local Character = Player.Character
+	local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+	local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+	
+	if not RootPart or not Humanoid then return end
+	if Humanoid.Health <= 0 then return end
+	
+	-- Multi-ray parameter configuration
+	local raycastParams = RaycastParams.new()
+	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+	raycastParams.FilterDescendantsInstances = {Character}
+	raycastParams.IgnoreWater = true
+	
+	-- 1. Scan direct forward (For vertical walls and pillars)
+	local frontOrigin = RootPart.Position
+	local frontDirection = RootPart.CFrame.LookVector * DETECTION_DISTANCE
+	local frontResult = Workspace:Raycast(frontOrigin, frontDirection, raycastParams)
+	
+	-- 2. Scan downward-forward (Specifically engineered to detect sloped stairs)
+	local stairOrigin = RootPart.Position - Vector3.new(0, 1.5, 0)
+	local stairDirection = (RootPart.CFrame.LookVector + Vector3.new(0, -0.5, 0)).Unit * DETECTION_DISTANCE
+	local stairResult = Workspace:Raycast(stairOrigin, stairDirection, raycastParams)
+	
+	-- Choose whichever obstacle surface is actively hit
+	local activeHit = frontResult or stairResult
+	
+	if activeHit and activeHit.Instance and activeHit.Instance.CanCollide then
+		-- Engage Cooldown Lockout immediately to protect framerate
+		IsOnCooldown = true
+		
+		local surfaceNormal = activeHit.Normal
+		
+		-- Interrupt native state calculations to force physics injection
+		Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+		
+		-- Calculate sleek trajectory: Upwards boost mixed with a subtle outward push
+		local cleanPush = (surfaceNormal * BOUNCE_OUT_FORCE) + Vector3.new(0, WALL_UP_FORCE, 0)
+		
+		-- Direct velocity assignment
+		RootPart.AssemblyLinearVelocity = Vector3.new(
+			RootPart.AssemblyLinearVelocity.X + cleanPush.X,
+			cleanPush.Y,
+			RootPart.AssemblyLinearVelocity.Z + cleanPush.Z
+		)
+
+		if WallStateLabel then
+			WallStateLabel.Text = "STATUS: HOPPED!"
+			WallStateLabel.TextColor3 = Theme.Success
+			task.delay(0.2, function()
+				if State and State.WallHopEnabled and WallStateLabel then
+					WallStateLabel.Text = "STATUS: READY"
+					WallStateLabel.TextColor3 = Theme.Success
+				end
+			end)
+		end
+		
+		-- Let physics settle smoothly before releasing the lockout loop
+		task.wait(COOLDOWN_TIME)
+		IsOnCooldown = false
+	end
+end)
+
+--============================================================
+-- TEAM / MATCH CHECK HELPER
+--============================================================
+
+local function IsValidEnemy(otherPlayer)
+	if otherPlayer == Player then return false end
+	if not otherPlayer.Character then return false end
+	
+	local enemyHum = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
+	if not enemyHum or enemyHum.Health <= 0 then return false end
+
+	-- Check if teams are active and configured
+	if Player.Team and otherPlayer.Team then
+		if Player.Team == otherPlayer.Team then
+			return false
+		end
+	end
+
+	return true
+end
+
+local function IsInActiveMatch()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if IsValidEnemy(p) then
+			return true
+		end
+	end
+	return false
+end
+
+--============================================================
+-- 250 FPS OPTIMIZER GUI & ENGINE
+--============================================================
+
+local FPSGui = Instance.new("ScreenGui")
+FPSGui.Name = "Apex_Clean_FPS"
+FPSGui.ResetOnSpawn = false
+FPSGui.Enabled = false
+FPSGui.Parent = PlayerGui
+
+local FPSLabel = Instance.new("TextLabel")
+FPSLabel.Name = "FPS_Display"
+FPSLabel.Parent = FPSGui
+FPSLabel.Size = UDim2.new(0, 140, 0, 30)
+FPSLabel.Position = UDim2.new(0.02, 0, 0.02, 0)
+FPSLabel.BackgroundColor3 = Color3.fromRGB(12, 10, 18)
+FPSLabel.BackgroundTransparency = 0.2
+FPSLabel.TextColor3 = Color3.fromRGB(65, 225, 130)
+FPSLabel.Font = Enum.Font.GothamBold
+FPSLabel.TextSize = 11
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 6)
+UICorner.Parent = FPSLabel
+
+local lastTime = os.clock()
+local frameCount = 0
+
+RunService.RenderStepped:Connect(function()
+	if not State.FPSEnabled then return end
+	frameCount = frameCount + 1
+	local currentTime = os.clock()
+	
+	if currentTime - lastTime >= 0.5 then
+		local actualFPS = math.floor(frameCount / (currentTime - lastTime))
+		FPSLabel.Text = " MAX STABILITY: " .. tostring(actualFPS) .. " FPS"
+		
+		if actualFPS >= 120 then
+			FPSLabel.TextColor3 = Color3.fromRGB(168, 65, 255)
+		elseif actualFPS >= 60 then
+			FPSLabel.TextColor3 = Color3.fromRGB(65, 225, 130)
+		else
+			FPSLabel.TextColor3 = Color3.fromRGB(230, 65, 80)
+		end
+		
+		frameCount = 0
+		lastTime = currentTime
+	end
+end)
+
+task.spawn(function()
+	while task.wait(10) do
+		if State.FPSEnabled then
+			gcinfo()
+		end
+	end
+end)
+
+--============================================================
+-- SETTINGS & FPS TOGGLE PAGE
+--============================================================
+
+AddToggle(
+	SettingsPage,
+	"250 FPS Graphics Optimizer",
+	"Unlocks framerate limits, forces peak thread prioritization, and enables live stability telemetry HUD (Disappears completely when turned off).",
+	function(enabled)
+		State.FPSEnabled = enabled
+		FPSGui.Enabled = enabled
+		
+		if enabled then
+			if setfpscap then
+				setfpscap(250)
+			elseif RunService.SyncFrameRate then
+				RunService:SyncFrameRate(250)
+			end
+			pcall(function()
+				settings().Physics.PhysicsEnvironmentalThrottle = Enum.EnviromentalPhysicsThrottle.Disabled
+				settings().Rendering.QualityLevel = Enum.QualityLevel.Level21
+				Workspace.StreamingEnabled = true
+			end)
+		end
+	end
+)
+
+MakeStepper(
+	SettingsPage,
+	"CAMERA FOV",
+	MIN_FOV,
+	MAX_FOV,
+	State.FOV,
+	5,
+	function(value)
+		State.FOV = value
+		local camera = Workspace.CurrentCamera
+		if camera then camera.FieldOfView = value end
+	end
+)
+
+local SettingsCard = MakeCard(SettingsPage, 100)
+local SettingsTitle = MakeText(SettingsCard, "PLAYER PROFILE", 15, Theme.Text)
+SettingsTitle.Font = Enum.Font.GothamBold
+SettingsTitle.Position = UDim2.fromScale(0.05, 0.08)
+SettingsTitle.Size = UDim2.fromScale(0.90, 0.20)
+
+local Avatar = Instance.new("ImageLabel")
+Avatar.BackgroundColor3 = Theme.Card2
+Avatar.BorderSizePixel = 0
+Avatar.Position = UDim2.fromScale(0.05, 0.32)
+Avatar.Size = UDim2.fromOffset(54, 54)
+Avatar.Parent = SettingsCard
+Corner(Avatar, 10)
+
+pcall(function()
+	Avatar.Image = Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size150x150)
+end)
+
+local ProfileName = MakeText(SettingsCard, Player.DisplayName, 13, Theme.Text)
+ProfileName.Font = Enum.Font.GothamBold
+ProfileName.Position = UDim2.fromScale(0.23, 0.34)
+ProfileName.Size = UDim2.fromScale(0.70, 0.25)
+
+local Username = MakeText(SettingsCard, "@" .. Player.Name, 10, Theme.Muted)
+Username.Position = UDim2.fromScale(0.23, 0.58)
+Username.Size = UDim2.fromScale(0.70, 0.20)
+
+--============================================================
+-- ACCENT COLORS
+--============================================================
+
+local ColorCard = MakeCard(SettingsPage, 105)
+local ColorTitle = MakeText(ColorCard, "UI ACCENT COLOR", 13, Theme.Text)
+ColorTitle.Font = Enum.Font.GothamBold
+ColorTitle.Position = UDim2.fromScale(0.05, 0.08)
+ColorTitle.Size = UDim2.fromScale(0.90, 0.20)
+
+local ColorRow = Instance.new("Frame")
+ColorRow.BackgroundTransparency = 1
+ColorRow.Position = UDim2.fromScale(0.05, 0.40)
+ColorRow.Size = UDim2.fromScale(0.90, 0.40)
+ColorRow.Parent = ColorCard
+
+local ColorLayout = Instance.new("UIListLayout")
+ColorLayout.FillDirection = Enum.FillDirection.Horizontal
+ColorLayout.Padding = UDim.new(0, 10)
+ColorLayout.Parent = ColorRow
+
+local AccentColors = {
+	Theme.Accent,
+	Color3.fromRGB(70, 130, 255),
+	Color3.fromRGB(255, 70, 160),
+	Color3.fromRGB(70, 220, 140),
+	Color3.fromRGB(255, 175, 55),
+	Color3.fromRGB(220, 70, 80)
+}
+
+local function UpdateAccent(color)
+	Theme.Accent = color
+	State.Accent = color
+	Logo.BackgroundColor3 = color
+	CloseButton.BackgroundColor3 = color
+	EnterButton.BackgroundColor3 = color
+	LoadingFill.BackgroundColor3 = color
+
+	for _, page in pairs(Pages) do
+		page.ScrollBarImageColor3 = color
+	end
+end
+
+for _, color in ipairs(AccentColors) do
+	local colorButton = MakeButton(ColorRow, "")
+	colorButton.BackgroundColor3 = color
+	colorButton.Size = UDim2.fromOffset(32, 32)
+	Corner(colorButton, 8)
+	colorButton.Activated:Connect(function()
+		UpdateAccent(color)
+	end)
+end
+
+--============================================================
+-- REOPEN BUTTON (COMPACT IMAGE ICON & DRAGGABLE)
+--============================================================
+
+local Reopen = Instance.new("ImageButton")
+Reopen.Name = "ApexReopen"
+Reopen.AutoButtonColor = false
+Reopen.AnchorPoint = Vector2.new(0, 1)
+Reopen.Position = UDim2.new(0, 25, 1, -25)
+Reopen.Size = UDim2.fromOffset(56, 56)
+Reopen.BackgroundColor3 = Theme.Background
+Reopen.Image = "rbxassetid://10738604473"
+Reopen.Visible = false
+Reopen.ZIndex = 9999
+Reopen.Parent = Gui
+
+Corner(Reopen, 16)
+Stroke(Reopen, Theme.Accent, 0.3, 1.5)
+
+local draggingReopen = false
+local reopenStart, reopenStartPosition, reopenMoved = false, nil, false
+
+Reopen.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingReopen = true
+		reopenMoved = false
+		reopenStart = input.Position
+		reopenStartPosition = Reopen.Position
+	end
+end)
+
+UIS.InputChanged:Connect(function(input)
+	if not draggingReopen then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		local delta = input.Position - reopenStart
+		if delta.Magnitude > 6 then reopenMoved = true end
+		Reopen.Position = UDim2.new(
+			reopenStartPosition.X.Scale, reopenStartPosition.X.Offset + delta.X,
+			reopenStartPosition.Y.Scale, reopenStartPosition.Y.Offset + delta.Y
+		)
+	end
+end)
+
+UIS.InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		draggingReopen = false
+	end
+end)
+
+--============================================================
+-- OPEN / CLOSE LOGIC
+--============================================================
+
+local function OpenMain()
+	if State.Destroyed then return end
+	State.MainOpen = true
+	Main.Visible = true
+	Reopen.Visible = false
+end
+
+local function CloseMain()
+	if State.Destroyed then return end
+	State.MainOpen = false
+	Main.Visible = false
+	Reopen.Visible = true
+end
+
+CloseButton.Activated:Connect(CloseMain)
+
+Reopen.Activated:Connect(function()
+	if reopenMoved then return end
+	OpenMain()
+end)
+
+--============================================================
+-- LOADING SYSTEM
+--============================================================
+
+local function RunLoading()
+	if State.Loading then return end
+	State.Loading = true
+	KeyWindow.Visible = false
+	Main.Visible = false
+	Reopen.Visible = false
+	LoadingWindow.Visible = true
+
+	local stages = {
+		{0, "Purging old bypass engine..."},
+		{35, "Injecting V26.5 FPS Optimizer & Telemetry HUD..."},
+		{75, "Calibrating combat responsiveness..."},
+		{100, "System active."}
+	}
+
+	for _, stage in ipairs(stages) do
+		LoadingStatus.Text = stage[2]
+		LoadingPercent.Text = tostring(stage[1]) .. "%"
+		Tween(LoadingFill, {Size = UDim2.fromScale(stage[1] / 100, 1)}, 0.18):Play()
+		task.wait(0.25)
+	end
+
+	LoadingWindow.Visible = false
+	State.Loading = false
+	State.Authenticated = true
+	Main.Visible = true
+	Reopen.Visible = false
+	SelectPage(HomePage, HomeButton)
+end
+
+--============================================================
+-- KEY SYSTEM
+--============================================================
+
+local function NormalizeKey(text)
+	return string.gsub(string.lower(tostring(text or "")), "%s+", "")
+end
+
+local function SubmitKey()
+	if State.Destroyed or State.Loading then return end
+	local entered = NormalizeKey(KeyBox.Text)
+
+	if VALID_KEYS[entered] then
+		KeyStatus.Text = "Access granted."
+		KeyStatus.TextColor3 = Theme.Success
+		EnterButton.Text = "LOADING..."
+		task.wait(0.25)
+		RunLoading()
+	else
+		KeyStatus.Text = "Invalid key."
+		KeyStatus.TextColor3 = Theme.Danger
+		KeyBox.Text = ""
+	end
+end
+
+EnterButton.Activated:Connect(SubmitKey)
+KeyBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then SubmitKey() end
+end)
+
+local KeyClose = MakeButton(KeyWindow, "×")
+KeyClose.BackgroundColor3 = Theme.Danger
+KeyClose.TextSize = 18
+KeyClose.Position = UDim2.fromScale(0.88, 0.08)
+KeyClose.Size = UDim2.fromScale(0.08, 0.12)
+KeyClose.Activated:Connect(function()
+	State.Destroyed = true
+	Gui:Destroy()
+end)
+
+--============================================================
+-- RUNTIME ENGINE LOOP (HEARTBEAT) & PROXIMITY BOMB TRANSFER
+--============================================================
+
+local lastBombTransferTick = 0
+
+RunService.RenderStepped:Connect(function(dt)
+	if State.Destroyed or not State.Authenticated then
+		return
+	end
+
+	local Character = Player.Character
+	local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
+	local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+
+	if not Character or not Humanoid or not RootPart then
+		return
+	end
+
+	if Humanoid.Health <= 0 then return end
+
+	Humanoid.UseJumpPower = true
+	if State.JumpEnabled then
+		if Humanoid.JumpPower ~= State.JumpPower then
+			Humanoid.JumpPower = State.JumpPower
+		end
+	else
+		if Humanoid.JumpPower ~= NORMAL_GAME_JUMP then
+			Humanoid.JumpPower = NORMAL_GAME_JUMP
+		end
+	end
+
+	if State.SpeedEnabled and Humanoid.MoveDirection.Magnitude > 0 then
+		local moveDir = Humanoid.MoveDirection
+		local delta = moveDir * (State.Speed * dt)
+		RootPart.CFrame = RootPart.CFrame + Vector3.new(delta.X, 0, delta.Z)
+	end
+
+	-- Hitbox & Match Filtering Engine
+	local inMatch = IsInActiveMatch()
+	if (State.HitboxEnabled or State.BombTransferEnabled) and inMatch then
+		local activeEnemies = {}
+		for _, p in ipairs(Players:GetPlayers()) do
+			if IsValidEnemy(p) then
+				local enemyRoot = p.Character:FindFirstChild("HumanoidRootPart")
+				if enemyRoot then
+					activeEnemies[p] = enemyRoot
+				end
+			end
+		end
+
+		for p, enemyRoot in pairs(activeEnemies) do
+			local box = enemyHitboxes[p]
+			if not box or not box.Parent then
+				box = Instance.new("Part")
+				box.Name = "ApexHitboxDebug"
+				box.Size = Vector3.new(4, 5, 4)
+				box.Anchored = true
+				box.CanCollide = false
+				box.Transparency = State.HitboxEnabled and 0.75 or 1
+				box.Color = Theme.Accent
+				box.Material = Enum.Material.Neon
+				box.Parent = Workspace
+				enemyHitboxes[p] = box
+			else
+				box.Transparency = State.HitboxEnabled and 0.75 or 1
+			end
+			box.CFrame = enemyRoot.CFrame
+
+			-- Proximity Bomb Transfer Logic (Triggered when hitboxes touch/are within close range)
+			if State.BombTransferEnabled and (tick() - lastBombTransferTick > 0.5) then
+				local distance = (RootPart.Position - enemyRoot.Position).Magnitude
+				if distance <= 4.5 then
+					pcall(function()
+						for _, child in ipairs(ReplicatedStorage:GetDescendants()) do
+							if child:IsA("RemoteEvent") and (string.find(string.lower(child.Name), "bomb") or string.find(string.lower(child.Name), "pass") or string.find(string.lower(child.Name), "transfer") or string.find(string.lower(child.Name), "touch")) then
+								child:FireServer(p)
+							end
+						end
+					end)
+					lastBombTransferTick = tick()
+				end
+			end
+		end
+
+		for p, box in pairs(enemyHitboxes) do
+			if not activeEnemies[p] then
+				if box then box:Destroy() end
+				enemyHitboxes[p] = nil
+			end
+		end
+	else
+		ClearEnemyHitboxes()
+	end
+end)
+
+--============================================================
+-- INITIAL STATE
+--============================================================
+
+KeyWindow.Visible = true
+LoadingWindow.Visible = false
+Main.Visible = false
+Reopen.Visible = false
+SelectPage(HomePage, HomeButton)
