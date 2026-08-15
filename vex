@@ -1,13 +1,9 @@
 --============================================================
---                    APEX SCRIPT V26.5
+--               APEX SCRIPT V26.5 + STEALTH SHIELD V30.0
 --            TIME BOMB DUELS EDITION • BY VEX
 --
 --  RE-ENGINEERED PHYSICS • REAL-TIME VELOCITY INJECTION
---  ZERO LAG • SNAPPY WALL HOP & INSTANT BOMB PROXIMITY TRANSFER
---============================================================
-
---============================================================
--- SERVICES
+--  UNIVERSAL ANTI-BAN & DETECT CORE • BYPASS ACTIVE
 --============================================================
 
 local Players = game:GetService("Players")
@@ -17,9 +13,62 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
+local LogService = game:GetService("LogService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
+
+--============================================================
+-- APEX STEALTH SHIELD NETWORK V30.0 (ANTI-BAN & DETECTION CORE)
+--============================================================
+
+pcall(function()
+	local originalFireServer
+	originalFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
+		local remoteName = string.lower(self.Name)
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") then
+			warn("[APEX ANTI-DETECTION] Blocked outbound report packet: " .. self.Name)
+			return nil 
+		end
+		return originalFireServer(self, ...)
+	end)
+end)
+
+pcall(function()
+	local originalInvokeServer
+	originalInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
+		local remoteName = string.lower(self.Name)
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("telemetry") then
+			warn("[APEX ANTI-DETECTION] Blocked outbound handshake check: " .. self.Name)
+			return nil
+		end
+		return originalInvokeServer(self, ...)
+	end)
+end)
+
+pcall(function()
+	local oldLog
+	oldLog = hookfunction(LogService.MessageOut, function(message, messageType)
+		if string.find(string.lower(message), "apex") or string.find(string.lower(message), "delta") or string.find(string.lower(message), "exploit") or string.find(string.lower(message), "inject") then
+			return nil
+		end
+		return oldLog(message, messageType)
+	end)
+end)
+
+RunService.Heartbeat:Connect(function()
+	pcall(function()
+		local character = Player.Character
+		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+		
+		if rootPart then
+			local currentVel = rootPart.AssemblyLinearVelocity
+			if currentVel.Magnitude > 280 then
+				rootPart.AssemblyLinearVelocity = Vector3.new(0, currentVel.Y, 0)
+			end
+		end
+	end)
+end)
 
 --============================================================
 -- CONFIG
@@ -531,7 +580,7 @@ WelcomeTitle.Font = Enum.Font.GothamBold
 WelcomeTitle.Position = UDim2.fromScale(0.05, 0.10)
 WelcomeTitle.Size = UDim2.fromScale(0.90, 0.22)
 
-local WelcomeText = MakeText(Welcome, "V26.5 Core updated. Added 250 FPS optimizer with live telemetry HUD that hides completely when deactivated.", 11, Theme.Muted)
+local WelcomeText = MakeText(Welcome, "V26.5 Core updated with Stealth Shield V30.0. Added 250 FPS optimizer with live telemetry HUD that hides completely when deactivated.", 11, Theme.Muted)
 WelcomeText.TextWrapped = true
 WelcomeText.Position = UDim2.fromScale(0.05, 0.36)
 WelcomeText.Size = UDim2.fromScale(0.90, 0.32)
@@ -703,11 +752,10 @@ local function ClearEnemyHitboxes()
 	enemyHitboxes = {}
 end
 
--- Fine-tuned configurations for smooth execution
-local DETECTION_DISTANCE = 3.5  -- Scanning range for obstacles
-local WALL_UP_FORCE = 44        -- Smooth vertical launch velocity
-local BOUNCE_OUT_FORCE = 3      -- Clean repulsion to break friction stickiness
-local COOLDOWN_TIME = 0.18      -- Critical anti-lag timer (prevents spam stuttering)
+local DETECTION_DISTANCE = 3.5  
+local WALL_UP_FORCE = 44        
+local BOUNCE_OUT_FORCE = 3      
+local COOLDOWN_TIME = 0.18      
 
 local IsOnCooldown = false
 
@@ -722,38 +770,29 @@ UIS.JumpRequest:Connect(function()
 	if not RootPart or not Humanoid then return end
 	if Humanoid.Health <= 0 then return end
 	
-	-- Multi-ray parameter configuration
 	local raycastParams = RaycastParams.new()
 	raycastParams.FilterType = Enum.RaycastFilterType.Exclude
 	raycastParams.FilterDescendantsInstances = {Character}
 	raycastParams.IgnoreWater = true
 	
-	-- 1. Scan direct forward (For vertical walls and pillars)
 	local frontOrigin = RootPart.Position
 	local frontDirection = RootPart.CFrame.LookVector * DETECTION_DISTANCE
 	local frontResult = Workspace:Raycast(frontOrigin, frontDirection, raycastParams)
 	
-	-- 2. Scan downward-forward (Specifically engineered to detect sloped stairs)
 	local stairOrigin = RootPart.Position - Vector3.new(0, 1.5, 0)
 	local stairDirection = (RootPart.CFrame.LookVector + Vector3.new(0, -0.5, 0)).Unit * DETECTION_DISTANCE
 	local stairResult = Workspace:Raycast(stairOrigin, stairDirection, raycastParams)
 	
-	-- Choose whichever obstacle surface is actively hit
 	local activeHit = frontResult or stairResult
 	
 	if activeHit and activeHit.Instance and activeHit.Instance.CanCollide then
-		-- Engage Cooldown Lockout immediately to protect framerate
 		IsOnCooldown = true
 		
 		local surfaceNormal = activeHit.Normal
-		
-		-- Interrupt native state calculations to force physics injection
 		Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
 		
-		-- Calculate sleek trajectory: Upwards boost mixed with a subtle outward push
 		local cleanPush = (surfaceNormal * BOUNCE_OUT_FORCE) + Vector3.new(0, WALL_UP_FORCE, 0)
 		
-		-- Direct velocity assignment
 		RootPart.AssemblyLinearVelocity = Vector3.new(
 			RootPart.AssemblyLinearVelocity.X + cleanPush.X,
 			cleanPush.Y,
@@ -771,7 +810,6 @@ UIS.JumpRequest:Connect(function()
 			end)
 		end
 		
-		-- Let physics settle smoothly before releasing the lockout loop
 		task.wait(COOLDOWN_TIME)
 		IsOnCooldown = false
 	end
@@ -788,7 +826,6 @@ local function IsValidEnemy(otherPlayer)
 	local enemyHum = otherPlayer.Character:FindFirstChildOfClass("Humanoid")
 	if not enemyHum or enemyHum.Health <= 0 then return false end
 
-	-- Check if teams are active and configured
 	if Player.Team and otherPlayer.Team then
 		if Player.Team == otherPlayer.Team then
 			return false
@@ -987,7 +1024,7 @@ for _, color in ipairs(AccentColors) do
 end
 
 --============================================================
--- REOPEN BUTTON (COMPACT IMAGE ICON & DRAGGABLE)
+-- REOPEN BUTTON
 --============================================================
 
 local Reopen = Instance.new("ImageButton")
@@ -1135,7 +1172,7 @@ KeyClose.Activated:Connect(function()
 end)
 
 --============================================================
--- RUNTIME ENGINE LOOP (HEARTBEAT) & PROXIMITY BOMB TRANSFER
+-- RUNTIME ENGINE LOOP & PROXIMITY BOMB TRANSFER
 --============================================================
 
 local lastBombTransferTick = 0
@@ -1172,7 +1209,6 @@ RunService.RenderStepped:Connect(function(dt)
 		RootPart.CFrame = RootPart.CFrame + Vector3.new(delta.X, 0, delta.Z)
 	end
 
-	-- Hitbox & Match Filtering Engine
 	local inMatch = IsInActiveMatch()
 	if (State.HitboxEnabled or State.BombTransferEnabled) and inMatch then
 		local activeEnemies = {}
@@ -1203,7 +1239,6 @@ RunService.RenderStepped:Connect(function(dt)
 			end
 			box.CFrame = enemyRoot.CFrame
 
-			-- Proximity Bomb Transfer Logic (Triggered when hitboxes touch/are within close range)
 			if State.BombTransferEnabled and (tick() - lastBombTransferTick > 0.5) then
 				local distance = (RootPart.Position - enemyRoot.Position).Magnitude
 				if distance <= 4.5 then
@@ -1239,3 +1274,4 @@ LoadingWindow.Visible = false
 Main.Visible = false
 Reopen.Visible = false
 SelectPage(HomePage, HomeButton)
+
