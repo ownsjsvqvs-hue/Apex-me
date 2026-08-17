@@ -1,9 +1,9 @@
 --============================================================
---               APEX SCRIPT V26.5 + STEALTH SHIELD V30.0
+--               APEX SCRIPT V33.0 + OVERLORD SHIELD V40.1
 --            TIME BOMB DUELS EDITION • BY VEX
 --
 --  RE-ENGINEERED PHYSICS • REAL-TIME VELOCITY INJECTION
---  UNIVERSAL ANTI-BAN & DETECT CORE • BYPASS ACTIVE
+--  ZERO-LAG PROXIMITY TRANSFER ENGINE • BYPASS ACTIVE
 --============================================================
 
 local Players = game:GetService("Players")
@@ -14,21 +14,54 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Teams = game:GetService("Teams")
 local LogService = game:GetService("LogService")
+local TextChatService = game:GetService("TextChatService")
+local StarterGui = game:GetService("StarterGui")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --============================================================
--- APEX STEALTH SHIELD NETWORK V30.0 (ANTI-BAN & DETECTION CORE)
+-- APEX OVERLORD SHIELD V40.1 (ANTI-BAN & ZERO CRASH HONEYPOT)
 --============================================================
+
+local function SendSilentAlert(remoteName, interceptType)
+	task.spawn(function()
+		if TextChatService and TextChatService.TextChannels and TextChatService.TextChannels:FindFirstChild("RBXSystem") then
+			TextChatService.TextChannels.RBXSystem:DisplaySystemMessage(
+				"<font color='#A841FF'><b>[APEX ULTRA-SHIELD]:</b></font> <font color='#F8F5FF'>Spoofed </font><font color='#F5B43C'><b>" .. tostring(interceptType) .. "</b></font> <font color='#F8F5FF'>on remote: </font><font color='#E64150'><b>" .. tostring(remoteName) .. "</b></font>"
+			)
+		else
+			pcall(function()
+				StarterGui:SetCore("ChatMakeSystemMessage", {
+					Text = "[APEX ULTRA-SHIELD]: Spoofed " .. tostring(interceptType) .. " on remote: " .. tostring(remoteName),
+					Color = Color3.fromRGB(168, 65, 255),
+					Font = Enum.Font.GothamBold,
+					TextSize = 13
+				})
+			end)
+		end
+	end)
+end
 
 pcall(function()
 	local originalFireServer
 	originalFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
+		local args = {...}
 		local remoteName = string.lower(self.Name)
-		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") then
-			warn("[APEX ANTI-DETECTION] Blocked outbound report packet: " .. self.Name)
-			return nil 
+		
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") or remoteName:find("pban") or remoteName:find("verify") or remoteName:find("check") then
+			for i = 1, #args do
+				if type(args[i]) == "number" then
+					args[i] = 0
+				elseif type(args[i]) == "boolean" then
+					args[i] = false
+				elseif type(args[i]) == "string" then
+					args[i] = "Normal Client"
+				end
+			end
+			
+			SendSilentAlert(self.Name, "TELEMETRY HONEYPOT")
+			return originalFireServer(self, unpack(args))
 		end
 		return originalFireServer(self, ...)
 	end)
@@ -38,9 +71,9 @@ pcall(function()
 	local originalInvokeServer
 	originalInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
 		local remoteName = string.lower(self.Name)
-		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("telemetry") then
-			warn("[APEX ANTI-DETECTION] Blocked outbound handshake check: " .. self.Name)
-			return nil
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("telemetry") or remoteName:find("check") then
+			SendSilentAlert(self.Name, "HANDSHAKE BYPASS")
+			return true
 		end
 		return originalInvokeServer(self, ...)
 	end)
@@ -49,7 +82,8 @@ end)
 pcall(function()
 	local oldLog
 	oldLog = hookfunction(LogService.MessageOut, function(message, messageType)
-		if string.find(string.lower(message), "apex") or string.find(string.lower(message), "delta") or string.find(string.lower(message), "exploit") or string.find(string.lower(message), "inject") then
+		local lowerMsg = string.lower(message)
+		if lowerMsg:find("apex") or lowerMsg:find("delta") or lowerMsg:find("exploit") or lowerMsg:find("inject") or lowerMsg:find("error") or lowerMsg:find("fail") or lowerMsg:find("hook") then
 			return nil
 		end
 		return oldLog(message, messageType)
@@ -63,8 +97,8 @@ RunService.Heartbeat:Connect(function()
 		
 		if rootPart then
 			local currentVel = rootPart.AssemblyLinearVelocity
-			if currentVel.Magnitude > 280 then
-				rootPart.AssemblyLinearVelocity = Vector3.new(0, currentVel.Y, 0)
+			if currentVel.Magnitude > 240 then
+				rootPart.AssemblyLinearVelocity = Vector3.new(currentVel.X * 0.1, currentVel.Y, currentVel.Z * 0.1)
 			end
 		end
 	end)
@@ -74,7 +108,7 @@ end)
 -- CONFIG
 --============================================================
 
-local VERSION = "V26.5"
+local VERSION = "V33.0"
 
 local VALID_KEYS = {
 	["apex"] = true,
@@ -126,6 +160,11 @@ local State = {
 	JumpEnabled = false,
 	WallHopEnabled = false,
 	HitboxEnabled = false,
+	HitboxSize = 15,
+	MinSize = 2,
+	MaxSize = 50,
+	HitboxColor = Color3.fromRGB(168, 65, 255),
+	HitboxTransparency = 0.65,
 	BombTransferEnabled = false,
 	FPSEnabled = false,
 
@@ -223,7 +262,7 @@ end
 --============================================================
 
 local Gui = Instance.new("ScreenGui")
-Gui.Name = "ApexV265"
+Gui.Name = "ApexV330"
 Gui.ResetOnSpawn = false
 Gui.IgnoreGuiInset = true
 Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
@@ -250,7 +289,7 @@ KeyTitle.Font = Enum.Font.GothamBold
 KeyTitle.Position = UDim2.fromScale(0.08, 0.08)
 KeyTitle.Size = UDim2.fromScale(0.75, 0.12)
 
-local KeySubtitle = MakeText(KeyWindow, "V26.5 • TIME BOMB DUELS", 10, Theme.Muted)
+local KeySubtitle = MakeText(KeyWindow, "V33.0 • TIME BOMB DUELS", 10, Theme.Muted)
 KeySubtitle.Position = UDim2.fromScale(0.08, 0.20)
 KeySubtitle.Size = UDim2.fromScale(0.8, 0.08)
 
@@ -374,7 +413,7 @@ Title.Font = Enum.Font.GothamBold
 Title.Position = UDim2.fromScale(0.11, 0.02)
 Title.Size = UDim2.fromScale(0.50, 0.40)
 
-local Subtitle = MakeText(Top, "V26.5 • INSTANT RESPONSE ENGINE", 10, Theme.Muted)
+local Subtitle = MakeText(Top, "V33.0 • INSTANT RESPONSE ENGINE", 10, Theme.Muted)
 Subtitle.Position = UDim2.fromScale(0.11, 0.47)
 Subtitle.Size = UDim2.fromScale(0.50, 0.30)
 
@@ -580,15 +619,31 @@ WelcomeTitle.Font = Enum.Font.GothamBold
 WelcomeTitle.Position = UDim2.fromScale(0.05, 0.10)
 WelcomeTitle.Size = UDim2.fromScale(0.90, 0.22)
 
-local WelcomeText = MakeText(Welcome, "V26.5 Core updated with Stealth Shield V30.0. Added 250 FPS optimizer with live telemetry HUD that hides completely when deactivated.", 11, Theme.Muted)
+local WelcomeText = MakeText(Welcome, "V33.0 Core updated with Overlord Shield V40.1 and standalone magnitude proximity bomb transfer engine.", 11, Theme.Muted)
 WelcomeText.TextWrapped = true
 WelcomeText.Position = UDim2.fromScale(0.05, 0.36)
 WelcomeText.Size = UDim2.fromScale(0.90, 0.32)
 
-local ReadyText = MakeText(Welcome, "ENGINE V26.5 FULLY OPTIMIZED", 10, Theme.Success)
+local ReadyText = MakeText(Welcome, "ENGINE V33.0 FULLY OPTIMIZED", 10, Theme.Success)
 ReadyText.Font = Enum.Font.GothamBold
 ReadyText.Position = UDim2.fromScale(0.05, 0.72)
 ReadyText.Size = UDim2.fromScale(0.90, 0.18)
+
+local OwnerCard = MakeCard(HomePage, 110)
+
+local OwnerTitle = MakeText(OwnerCard, "OWNER & CREATOR", 15, Theme.Text)
+OwnerTitle.Font = Enum.Font.GothamBold
+OwnerTitle.Position = UDim2.fromScale(0.05, 0.10)
+OwnerTitle.Size = UDim2.fromScale(0.90, 0.25)
+
+local OwnerTikTok = MakeText(OwnerCard, "TikTok: @apex_creator1", 11, Theme.Muted)
+OwnerTikTok.Position = UDim2.fromScale(0.05, 0.38)
+OwnerTikTok.Size = UDim2.fromScale(0.90, 0.25)
+
+local OwnerRoblox = MakeText(OwnerCard, "Roblox user: Fachero_andy (Follow me!)", 11, Theme.Accent)
+OwnerRoblox.Font = Enum.Font.GothamBold
+OwnerRoblox.Position = UDim2.fromScale(0.05, 0.64)
+OwnerRoblox.Size = UDim2.fromScale(0.90, 0.25)
 
 --============================================================
 -- STEPPER HELPER
@@ -727,6 +782,30 @@ AddToggle(
 	"Highlights active enemy opponents only during duels/matches (excludes teammates and yourself).",
 	function(enabled)
 		State.HitboxEnabled = enabled
+		if not enabled then
+			for _, enemy in pairs(Players:GetPlayers()) do
+				pcall(function()
+					local root = enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart")
+					if root then
+						root.Size = Vector3.new(2, 2, 1)
+						root.Transparency = 1
+						root.Material = Enum.Material.Plastic
+					end
+				end)
+			end
+		end
+	end
+)
+
+MakeStepper(
+	WallPage,
+	"HITBOX RADIUS",
+	State.MinSize,
+	State.MaxSize,
+	State.HitboxSize,
+	1,
+	function(value)
+		State.HitboxSize = value
 	end
 )
 
@@ -742,15 +821,6 @@ AddToggle(
 --============================================================
 -- CHARACTER & WALL HOP V10 ENGINE (INSTANT VELOCITY)
 --============================================================
-
-local enemyHitboxes = {}
-
-local function ClearEnemyHitboxes()
-	for _, box in pairs(enemyHitboxes) do
-		if box and box.Parent then box:Destroy() end
-	end
-	enemyHitboxes = {}
-end
 
 local DETECTION_DISTANCE = 3.5  
 local WALL_UP_FORCE = 44        
@@ -1111,8 +1181,8 @@ local function RunLoading()
 
 	local stages = {
 		{0, "Purging old bypass engine..."},
-		{35, "Injecting V26.5 FPS Optimizer & Telemetry HUD..."},
-		{75, "Calibrating combat responsiveness..."},
+		{35, "Injecting V33.0 FPS Optimizer & Overlord Shield V40.1..."},
+		{75, "Calibrating magnitude transfer engine..."},
 		{100, "System active."}
 	}
 
@@ -1172,10 +1242,12 @@ KeyClose.Activated:Connect(function()
 end)
 
 --============================================================
--- RUNTIME ENGINE LOOP & PROXIMITY BOMB TRANSFER
+-- RUNTIME ENGINE LOOP & MAGNITUDE PROXIMITY TRANSFER
 --============================================================
 
-local lastBombTransferTick = 0
+local AUTOMATIC_TRANSFER_RADIUS = 8.5
+local TRANSFER_COOLDOWN = 0.25
+local LastTransferTime = 0
 
 RunService.RenderStepped:Connect(function(dt)
 	if State.Destroyed or not State.Authenticated then
@@ -1185,6 +1257,7 @@ RunService.RenderStepped:Connect(function(dt)
 	local Character = Player.Character
 	local Humanoid = Character and Character:FindFirstChildOfClass("Humanoid")
 	local RootPart = Character and Character:FindFirstChild("HumanoidRootPart")
+	local holdingBomb = Character and (Character:FindFirstChild("Bomb") or Character:FindFirstChildOfClass("Tool"))
 
 	if not Character or not Humanoid or not RootPart then
 		return
@@ -1210,58 +1283,75 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 
 	local inMatch = IsInActiveMatch()
-	if (State.HitboxEnabled or State.BombTransferEnabled) and inMatch then
-		local activeEnemies = {}
-		for _, p in ipairs(Players:GetPlayers()) do
-			if IsValidEnemy(p) then
-				local enemyRoot = p.Character:FindFirstChild("HumanoidRootPart")
-				if enemyRoot then
-					activeEnemies[p] = enemyRoot
-				end
-			end
-		end
-
-		for p, enemyRoot in pairs(activeEnemies) do
-			local box = enemyHitboxes[p]
-			if not box or not box.Parent then
-				box = Instance.new("Part")
-				box.Name = "ApexHitboxDebug"
-				box.Size = Vector3.new(4, 5, 4)
-				box.Anchored = true
-				box.CanCollide = false
-				box.Transparency = State.HitboxEnabled and 0.75 or 1
-				box.Color = Theme.Accent
-				box.Material = Enum.Material.Neon
-				box.Parent = Workspace
-				enemyHitboxes[p] = box
-			else
-				box.Transparency = State.HitboxEnabled and 0.75 or 1
-			end
-			box.CFrame = enemyRoot.CFrame
-
-			if State.BombTransferEnabled and (tick() - lastBombTransferTick > 0.5) then
-				local distance = (RootPart.Position - enemyRoot.Position).Magnitude
-				if distance <= 4.5 then
-					pcall(function()
-						for _, child in ipairs(ReplicatedStorage:GetDescendants()) do
-							if child:IsA("RemoteEvent") and (string.find(string.lower(child.Name), "bomb") or string.find(string.lower(child.Name), "pass") or string.find(string.lower(child.Name), "transfer") or string.find(string.lower(child.Name), "touch")) then
-								child:FireServer(p)
-							end
-						end
-					end)
-					lastBombTransferTick = tick()
-				end
-			end
-		end
-
-		for p, box in pairs(enemyHitboxes) do
-			if not activeEnemies[p] then
-				if box then box:Destroy() end
-				enemyHitboxes[p] = nil
+	if State.HitboxEnabled and inMatch then
+		for _, targetPlayer in pairs(Players:GetPlayers()) do
+			if IsValidEnemy(targetPlayer) then
+				pcall(function()
+					local enemyChar = targetPlayer.Character
+					local enemyRoot = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+					local enemyHum = enemyChar and enemyChar:FindFirstChildOfClass("Humanoid")
+					
+					if enemyRoot and enemyHum and enemyHum.Health > 0 then
+						enemyRoot.Size = Vector3.new(State.HitboxSize, State.HitboxSize, State.HitboxSize)
+						enemyRoot.CanCollide = false
+						enemyRoot.Transparency = State.HitboxTransparency
+						enemyRoot.Color = State.HitboxColor
+						enemyRoot.Material = Enum.Material.Neon
+					end
+				end)
 			end
 		end
 	else
-		ClearEnemyHitboxes()
+		for _, enemy in pairs(Players:GetPlayers()) do
+			pcall(function()
+				local root = enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart")
+				if root then
+					root.Size = Vector3.new(2, 2, 1)
+					root.Transparency = 1
+					root.Material = Enum.Material.Plastic
+				end
+			end)
+		end
+	end
+
+	if State.BombTransferEnabled and holdingBomb and inMatch then
+		if os.clock() - LastTransferTime >= TRANSFER_COOLDOWN then
+			for _, targetPlayer in pairs(Players:GetPlayers()) do
+				if IsValidEnemy(targetPlayer) then
+					pcall(function()
+						local enemyChar = targetPlayer.Character
+						local enemyRoot = enemyChar and enemyChar:FindFirstChild("HumanoidRootPart")
+						local enemyHum = enemyChar and enemyChar:FindFirstChildOfClass("Humanoid")
+						
+						if enemyRoot and enemyHum and enemyHum.Health > 0 then
+							local currentDistance = (RootPart.Position - enemyRoot.Position).Magnitude
+							if currentDistance <= AUTOMATIC_TRANSFER_RADIUS then
+								LastTransferTime = os.clock()
+								
+								holdingBomb:Activate()
+								
+								local bombHandle = holdingBomb:FindFirstChild("Handle") or holdingBomb:FindFirstChildOfClass("Part")
+								if bombHandle then
+									pcall(function()
+										firetouchinterest(enemyRoot, bombHandle, 0)
+										task.wait(0.01)
+										firetouchinterest(enemyRoot, bombHandle, 1)
+									end)
+								end
+								
+								pcall(function()
+									for _, child in ipairs(ReplicatedStorage:GetDescendants()) do
+										if child:IsA("RemoteEvent") and (string.find(string.lower(child.Name), "bomb") or string.find(string.lower(child.Name), "pass") or string.find(string.lower(child.Name), "transfer") or string.find(string.lower(child.Name), "touch")) then
+											child:FireServer(targetPlayer)
+										end
+									end
+								end)
+							end
+						end
+					end)
+				end
+			end
+		end
 	end
 end)
 
@@ -1275,3 +1365,4 @@ Main.Visible = false
 Reopen.Visible = false
 SelectPage(HomePage, HomeButton)
 
+print("[APEX] V33.0 Standalone Proximity Bomb Transfer core fully engaged.")
