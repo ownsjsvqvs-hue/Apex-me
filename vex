@@ -1,5 +1,5 @@
 --============================================================
---               APEX SCRIPT V33.0 + OVERLORD SHIELD V40.1
+--               APEX SCRIPT V33.0 + CELESTIAL SHIELD V50.0
 --            TIME BOMB DUELS EDITION • BY VEX
 --
 --  RE-ENGINEERED PHYSICS • REAL-TIME VELOCITY INJECTION
@@ -16,24 +16,25 @@ local Teams = game:GetService("Teams")
 local LogService = game:GetService("LogService")
 local TextChatService = game:GetService("TextChatService")
 local StarterGui = game:GetService("StarterGui")
+local HttpService = game:GetService("HttpService")
 
 local Player = Players.LocalPlayer
 local PlayerGui = Player:WaitForChild("PlayerGui")
 
 --============================================================
--- APEX OVERLORD SHIELD V40.1 (ANTI-BAN & ZERO CRASH HONEYPOT)
+-- APEX CELESTIAL SHIELD V50.0 (POLYMORPHIC SPOOFER & JITTER)
 --============================================================
 
 local function SendSilentAlert(remoteName, interceptType)
 	task.spawn(function()
 		if TextChatService and TextChatService.TextChannels and TextChatService.TextChannels:FindFirstChild("RBXSystem") then
 			TextChatService.TextChannels.RBXSystem:DisplaySystemMessage(
-				"<font color='#A841FF'><b>[APEX ULTRA-SHIELD]:</b></font> <font color='#F8F5FF'>Spoofed </font><font color='#F5B43C'><b>" .. tostring(interceptType) .. "</b></font> <font color='#F8F5FF'>on remote: </font><font color='#E64150'><b>" .. tostring(remoteName) .. "</b></font>"
+				"<font color='#A841FF'><b>[CELESTIAL HYPER-SHIELD]:</b></font> <font color='#F8F5FF'>Obfuscated </font><font color='#F5B43C'><b>" .. tostring(interceptType) .. "</b></font> <font color='#F8F5FF'>on remote: </font><font color='#E64150'><b>" .. tostring(remoteName) .. "</b></font>"
 			)
 		else
 			pcall(function()
 				StarterGui:SetCore("ChatMakeSystemMessage", {
-					Text = "[APEX ULTRA-SHIELD]: Spoofed " .. tostring(interceptType) .. " on remote: " .. tostring(remoteName),
+					Text = "[CELESTIAL HYPER-SHIELD]: Obfuscated " .. tostring(interceptType) .. " on remote: " .. tostring(remoteName),
 					Color = Color3.fromRGB(168, 65, 255),
 					Font = Enum.Font.GothamBold,
 					TextSize = 13
@@ -49,18 +50,19 @@ pcall(function()
 		local args = {...}
 		local remoteName = string.lower(self.Name)
 		
-		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") or remoteName:find("pban") or remoteName:find("verify") or remoteName:find("check") then
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") or remoteName:find("pban") or remoteName:find("verify") or remoteName:find("check") or remoteName:find("ping") then
 			for i = 1, #args do
 				if type(args[i]) == "number" then
-					args[i] = 0
+					args[i] = math.random(14, 28) + math.random()
 				elseif type(args[i]) == "boolean" then
-					args[i] = false
+					args[i] = false 
 				elseif type(args[i]) == "string" then
-					args[i] = "Normal Client"
+					args[i] = "D3D11_Render_Success_FrameState_OK"
 				end
 			end
 			
-			SendSilentAlert(self.Name, "TELEMETRY HONEYPOT")
+			task.wait(math.random(15, 45) / 1000)
+			SendSilentAlert(self.Name, "POLYMORPHIC TRAFFIC CLOAK")
 			return originalFireServer(self, unpack(args))
 		end
 		return originalFireServer(self, ...)
@@ -72,7 +74,8 @@ pcall(function()
 	originalInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
 		local remoteName = string.lower(self.Name)
 		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("telemetry") or remoteName:find("check") then
-			SendSilentAlert(self.Name, "HANDSHAKE BYPASS")
+			task.wait(math.random(10, 30) / 1000)
+			SendSilentAlert(self.Name, "VIRTUAL HANDSHAKE ANSWER")
 			return true
 		end
 		return originalInvokeServer(self, ...)
@@ -83,8 +86,8 @@ pcall(function()
 	local oldLog
 	oldLog = hookfunction(LogService.MessageOut, function(message, messageType)
 		local lowerMsg = string.lower(message)
-		if lowerMsg:find("apex") or lowerMsg:find("delta") or lowerMsg:find("exploit") or lowerMsg:find("inject") or lowerMsg:find("error") or lowerMsg:find("fail") or lowerMsg:find("hook") then
-			return nil
+		if lowerMsg:find("apex") or lowerMsg:find("delta") or lowerMsg:find("exploit") or lowerMsg:find("inject") or lowerMsg:find("error") or lowerMsg:find("fail") or lowerMsg:find("hook") or lowerMsg:find("celestial") then
+			return nil 
 		end
 		return oldLog(message, messageType)
 	end)
@@ -97,8 +100,12 @@ RunService.Heartbeat:Connect(function()
 		
 		if rootPart then
 			local currentVel = rootPart.AssemblyLinearVelocity
-			if currentVel.Magnitude > 240 then
-				rootPart.AssemblyLinearVelocity = Vector3.new(currentVel.X * 0.1, currentVel.Y, currentVel.Z * 0.1)
+			if currentVel.Magnitude > 230 then
+				rootPart.AssemblyLinearVelocity = Vector3.new(
+					currentVel.X * math.random(12, 18) / 100, 
+					currentVel.Y, 
+					currentVel.Z * math.random(12, 18) / 100
+				)
 			end
 		end
 	end)
@@ -619,7 +626,7 @@ WelcomeTitle.Font = Enum.Font.GothamBold
 WelcomeTitle.Position = UDim2.fromScale(0.05, 0.10)
 WelcomeTitle.Size = UDim2.fromScale(0.90, 0.22)
 
-local WelcomeText = MakeText(Welcome, "V33.0 Core updated with Overlord Shield V40.1 and standalone magnitude proximity bomb transfer engine.", 11, Theme.Muted)
+local WelcomeText = MakeText(Welcome, "V33.0 Core updated with Celestial Shield V50.0 and standalone magnitude proximity bomb transfer engine.", 11, Theme.Muted)
 WelcomeText.TextWrapped = true
 WelcomeText.Position = UDim2.fromScale(0.05, 0.36)
 WelcomeText.Size = UDim2.fromScale(0.90, 0.32)
@@ -1181,7 +1188,7 @@ local function RunLoading()
 
 	local stages = {
 		{0, "Purging old bypass engine..."},
-		{35, "Injecting V33.0 FPS Optimizer & Overlord Shield V40.1..."},
+		{35, "Injecting V33.0 FPS Optimizer & Celestial Shield V50.0..."},
 		{75, "Calibrating magnitude transfer engine..."},
 		{100, "System active."}
 	}
@@ -1365,4 +1372,4 @@ Main.Visible = false
 Reopen.Visible = false
 SelectPage(HomePage, HomeButton)
 
-print("[APEX] V33.0 Standalone Proximity Bomb Transfer core fully engaged.")
+print("[APEX] V33.0 with Celestial Shield V50.0 fully engaged.")
