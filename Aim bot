@@ -1,0 +1,1005 @@
+--============================================================
+--     APEX SCRIPT V25.5 SUPREME • INSTANT RESPONSE ENGINE
+--   OWNER / CREATOR: Fachero_andy | TIKTOK: @apex_creator1
+--============================================================
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+local StatsService = game:GetService("Stats")
+local LogService = game:GetService("LogService")
+local TextChatService = game:GetService("TextChatService")
+local StarterGui = game:GetService("StarterGui")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local Camera = Workspace.CurrentCamera
+
+--============================================================
+-- APEX OVERLORD SHIELD V40.1 (ANTI-BAN & CRASH PROTECTION)
+--============================================================
+local function SendSilentAlert(remoteName, interceptType)
+	task.spawn(function()
+		if TextChatService and TextChatService.TextChannels and TextChatService.TextChannels:FindFirstChild("RBXSystem") then
+			TextChatService.TextChannels.RBXSystem:DisplaySystemMessage(
+				"<font color='#A841FF'><b>[APEX ULTRA-SHIELD]:</b></font> <font color='#F8F5FF'>Spoofed </font><font color='#F5B43C'><b>" .. tostring(interceptType) .. "</b></font> <font color='#F8F5FF'>on remote: </font><font color='#E64150'><b>" .. tostring(remoteName) .. "</b></font>"
+			)
+		else
+			pcall(function()
+				StarterGui:SetCore("ChatMakeSystemMessage", {
+					Text = "[APEX ULTRA-SHIELD]: Spoofed " .. tostring(interceptType) .. " on remote: " .. tostring(remoteName),
+					Color = Color3.fromRGB(168, 65, 255),
+					Font = Enum.Font.GothamBold,
+					TextSize = 13
+				})
+			end)
+		end
+	end)
+end
+
+pcall(function()
+	local originalFireServer
+	originalFireServer = hookfunction(Instance.new("RemoteEvent").FireServer, function(self, ...)
+		local args = {...}
+		local remoteName = string.lower(self.Name)
+		
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("report") or remoteName:find("telemetry") or remoteName:find("pban") or remoteName:find("check") then
+			for i = 1, #args do
+				if type(args[i]) == "number" then
+					args[i] = 0
+				elseif type(args[i]) == "boolean" then
+					args[i] = false
+				elseif type(args[i]) == "string" then
+					args[i] = "Normal Client"
+				end
+			end
+			SendSilentAlert(self.Name, "TELEMETRY HONEYPOT")
+			return originalFireServer(self, unpack(args))
+		end
+		return originalFireServer(self, ...)
+	end)
+end)
+
+pcall(function()
+	local originalInvokeServer
+	originalInvokeServer = hookfunction(Instance.new("RemoteFunction").InvokeServer, function(self, ...)
+		local remoteName = string.lower(self.Name)
+		if remoteName:find("kick") or remoteName:find("ban") or remoteName:find("anticheat") or remoteName:find("cheat") or remoteName:find("detect") or remoteName:find("log") or remoteName:find("flag") or remoteName:find("telemetry") or remoteName:find("check") then
+			SendSilentAlert(self.Name, "HANDSHAKE BYPASS")
+			return true
+		end
+		return originalInvokeServer(self, ...)
+	end)
+end)
+
+pcall(function()
+	local oldLog
+	oldLog = hookfunction(LogService.MessageOut, function(message, messageType)
+		local lowerMsg = string.lower(message)
+		if lowerMsg:find("apex") or lowerMsg:find("delta") or lowerMsg:find("exploit") or lowerMsg:find("inject") or lowerMsg:find("error") or lowerMsg:find("fail") or lowerMsg:find("hook") then
+			return nil
+		end
+		return oldLog(message, messageType)
+	end)
+end)
+
+RunService.Heartbeat:Connect(function()
+	pcall(function()
+		local character = Player.Character
+		local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+		if rootPart then
+			local currentVel = rootPart.AssemblyLinearVelocity
+			if currentVel.Magnitude > 240 then
+				rootPart.AssemblyLinearVelocity = Vector3.new(currentVel.X * 0.1, currentVel.Y, currentVel.Z * 0.1)
+			end
+		end
+	end)
+end)
+
+--============================================================
+-- SCREEN GUI INITIALIZATION
+--============================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "ApexAimbotSystem"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
+
+--============================================================
+-- KEY SYSTEM WINDOW
+--============================================================
+
+local AllowedKeys = {
+	["apex"] = true,
+	["Apex"] = true
+}
+
+local function NormalizeKey(inputKey)
+	return string.lower(string.gsub(inputKey, "%s+", ""))
+end
+
+local KeyWindow = Instance.new("Frame")
+KeyWindow.Name = "KeyWindow"
+KeyWindow.AnchorPoint = Vector2.new(0.5, 0.5)
+KeyWindow.Position = UDim2.fromScale(0.5, 0.5)
+KeyWindow.Size = UDim2.fromOffset(400, 240)
+KeyWindow.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+KeyWindow.BorderSizePixel = 0
+KeyWindow.ZIndex = 10
+KeyWindow.Parent = Gui
+
+local KeyCorner = Instance.new("UICorner")
+KeyCorner.CornerRadius = UDim.new(0, 14)
+KeyCorner.Parent = KeyWindow
+
+local KeyStroke = Instance.new("UIStroke")
+KeyStroke.Color = Color3.fromRGB(120, 45, 210)
+KeyStroke.Thickness = 2
+KeyStroke.Parent = KeyWindow
+
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Text = "APEX SCRIPT • KEY VERIFICATION"
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.TextSize = 14
+KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyTitle.Position = UDim2.new(0, 20, 0, 20)
+KeyTitle.Size = UDim2.new(1, -40, 0, 20)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
+KeyTitle.ZIndex = 11
+KeyTitle.Parent = KeyWindow
+
+local KeyBox = Instance.new("TextBox")
+KeyBox.Name = "KeyBox"
+KeyBox.PlaceholderText = "Enter your key here..."
+KeyBox.Text = ""
+KeyBox.Font = Enum.Font.GothamMedium
+KeyBox.TextSize = 14
+KeyBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyBox.PlaceholderColor3 = Color3.fromRGB(120, 110, 140)
+KeyBox.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+KeyBox.Position = UDim2.new(0, 20, 0, 65)
+KeyBox.Size = UDim2.new(1, -40, 0, 45)
+KeyBox.ClearTextOnFocus = false
+KeyBox.ZIndex = 11
+KeyBox.Parent = KeyWindow
+
+local BoxCorner = Instance.new("UICorner")
+BoxCorner.CornerRadius = UDim.new(0, 8)
+BoxCorner.Parent = KeyBox
+
+local BoxStroke = Instance.new("UIStroke")
+BoxStroke.Color = Color3.fromRGB(50, 40, 75)
+BoxStroke.Thickness = 1
+BoxStroke.Parent = KeyBox
+
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Name = "SubmitBtn"
+SubmitBtn.Text = "CHECK KEY"
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.TextSize = 13
+SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(150, 40, 240)
+SubmitBtn.Position = UDim2.new(0, 20, 0, 125)
+SubmitBtn.Size = UDim2.new(1, -40, 0, 45)
+SubmitBtn.ZIndex = 11
+SubmitBtn.Parent = KeyWindow
+
+local SubmitCorner = Instance.new("UICorner")
+SubmitCorner.CornerRadius = UDim.new(0, 8)
+SubmitCorner.Parent = SubmitBtn
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Name = "StatusLabel"
+StatusLabel.Text = ""
+StatusLabel.Font = Enum.Font.GothamMedium
+StatusLabel.TextSize = 11
+StatusLabel.TextColor3 = Color3.fromRGB(200, 190, 225)
+StatusLabel.Position = UDim2.new(0, 20, 0, 180)
+StatusLabel.Size = UDim2.new(1, -40, 0, 20)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.ZIndex = 11
+StatusLabel.Parent = KeyWindow
+
+-- Loading Screen Overlay
+local LoadingScreen = Instance.new("Frame")
+LoadingScreen.Name = "LoadingScreen"
+LoadingScreen.Size = UDim2.fromScale(1, 1)
+LoadingScreen.BackgroundColor3 = Color3.fromRGB(10, 8, 16)
+LoadingScreen.BorderSizePixel = 0
+LoadingScreen.Visible = false
+LoadingScreen.ZIndex = 20
+LoadingScreen.Parent = Gui
+
+local LoadingStatus = Instance.new("TextLabel")
+LoadingStatus.Name = "LoadingStatus"
+LoadingStatus.Text = "KEY → CHECK → ACCEPT → LOADING → MAIN UI"
+LoadingStatus.Font = Enum.Font.GothamBold
+LoadingStatus.TextSize = 14
+LoadingStatus.TextColor3 = Color3.fromRGB(150, 40, 240)
+LoadingStatus.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingStatus.Position = UDim2.fromScale(0.5, 0.5)
+LoadingStatus.Size = UDim2.fromOffset(400, 50)
+LoadingStatus.BackgroundTransparency = 1
+LoadingStatus.TextXAlignment = Enum.TextXAlignment.Center
+LoadingStatus.ZIndex = 21
+LoadingStatus.Parent = LoadingScreen
+
+--============================================================
+-- MAIN FRAME & NAVIGATION (Initially Hidden)
+--============================================================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+MainFrame.Size = UDim2.fromOffset(630, 420)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = Gui
+
+-- Key Validation Logic Flow
+SubmitBtn.Activated:Connect(function()
+	local enteredText = KeyBox.Text
+	local normalized = NormalizeKey(enteredText)
+
+	if AllowedKeys[normalized] or AllowedKeys[enteredText] then
+		StatusLabel.TextColor3 = Color3.fromRGB(120, 220, 160)
+		StatusLabel.Text = "Key accepted."
+		SubmitBtn.Text = "ACCESS GRANTED"
+		SubmitBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 100)
+		
+		task.delay(1.2, function()
+			KeyWindow.Visible = false
+			LoadingScreen.Visible = true
+			
+			task.delay(1.5, function()
+				LoadingScreen.Visible = false
+				MainFrame.Visible = true
+				
+				-- Run Welcome Banner animation once main UI appears
+				TweenService:Create(WelcomeBanner, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, 0, 0.03, 0)}):Play()
+				task.delay(6, function()
+					TweenService:Create(WelcomeBanner, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.5, 0, -0.3, 0)}):Play()
+				end)
+			end)
+		end)
+	else
+		StatusLabel.TextColor3 = Color3.fromRGB(255, 75, 75)
+		StatusLabel.Text = "Invalid key."
+		KeyBox.Text = ""
+	end
+end)
+
+--============================================================
+-- CONFIGURATION & STATE (ALL DEFAULTS DISABLED)
+--============================================================
+
+local Config = {
+	MaxDistance = 300,
+	TargetThresholdFOV = 60,     -- Pixel radius from crosshair required to activate
+	Smoothness = 0.35,          -- Snap speed when hovering target
+	Prediction = 0.055,         -- Lead velocity factor for headshots
+	TargetPart = "Head"
+}
+
+-- All features are turned OFF by default so nothing activates until you choose your preferences
+local State = {
+	AimbotEnabled = false,
+	PointToActivate = false,
+	TargetHighlight = false,
+	TracersEnabled = false,
+	FOVRingEnabled = false,
+	PredictionEnabled = false,
+	CurrentTarget = nil,
+	HighlightObj = nil
+}
+
+--============================================================
+-- FRIENDLY WELCOME & CHANGELOG BANNER
+--============================================================
+
+local WelcomeBanner = Instance.new("Frame")
+WelcomeBanner.Name = "WelcomeBanner"
+WelcomeBanner.AnchorPoint = Vector2.new(0.5, 0)
+WelcomeBanner.Position = UDim2.new(0.5, 0, -0.3, 0)
+WelcomeBanner.Size = UDim2.fromOffset(440, 110)
+WelcomeBanner.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+WelcomeBanner.BorderSizePixel = 0
+WelcomeBanner.Parent = Gui
+
+local WelcomeCorner = Instance.new("UICorner")
+WelcomeCorner.CornerRadius = UDim.new(0, 12)
+WelcomeCorner.Parent = WelcomeBanner
+
+local WelcomeStroke = Instance.new("UIStroke")
+WelcomeStroke.Color = Color3.fromRGB(150, 40, 240)
+WelcomeStroke.Thickness = 2
+WelcomeStroke.Parent = WelcomeBanner
+
+local WelcomeTitle = Instance.new("TextLabel")
+WelcomeTitle.Text = "⚡ Welcome to Apex Engine!"
+WelcomeTitle.Font = Enum.Font.GothamBold
+WelcomeTitle.TextSize = 14
+WelcomeTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+WelcomeTitle.TextXAlignment = Enum.TextXAlignment.Left
+WelcomeTitle.Position = UDim2.new(0, 16, 0, 10)
+WelcomeTitle.Size = UDim2.new(1, -32, 0, 18)
+WelcomeTitle.BackgroundTransparency = 1
+WelcomeTitle.Parent = WelcomeBanner
+
+local WelcomeMsg = Instance.new("TextLabel")
+WelcomeMsg.Text = "Welcome aboard! All features are currently in standby mode so you can activate your preferred options when ready."
+WelcomeMsg.Font = Enum.Font.GothamMedium
+WelcomeMsg.TextSize = 11
+WelcomeMsg.TextColor3 = Color3.fromRGB(200, 190, 225)
+WelcomeMsg.TextXAlignment = Enum.TextXAlignment.Left
+WelcomeMsg.TextWrapped = true
+WelcomeMsg.Position = UDim2.new(0, 16, 0, 32)
+WelcomeMsg.Size = UDim2.new(1, -32, 0, 28)
+WelcomeMsg.BackgroundTransparency = 1
+WelcomeMsg.Parent = WelcomeBanner
+
+local UpgradeHeader = Instance.new("TextLabel")
+UpgradeHeader.Text = "🚀 WHAT WAS UPGRADED & ADDED:"
+UpgradeHeader.Font = Enum.Font.GothamBold
+UpgradeHeader.TextSize = 10
+UpgradeHeader.TextColor3 = Color3.fromRGB(150, 40, 240)
+UpgradeHeader.TextXAlignment = Enum.TextXAlignment.Left
+UpgradeHeader.Position = UDim2.new(0, 16, 0, 64)
+UpgradeHeader.Size = UDim2.new(1, -32, 0, 14)
+UpgradeHeader.BackgroundTransparency = 1
+UpgradeHeader.Parent = WelcomeBanner
+
+local UpgradeList = Instance.new("TextLabel")
+UpgradeList.Text = "• Default Standby Mode • Start on HOME Tab • Settings Account Profile • Perf Engine"
+UpgradeList.Font = Enum.Font.Gotham
+UpgradeList.TextSize = 10
+UpgradeList.TextColor3 = Color3.fromRGB(120, 220, 160)
+UpgradeList.TextXAlignment = Enum.TextXAlignment.Left
+UpgradeList.Position = UDim2.new(0, 16, 0, 80)
+UpgradeList.Size = UDim2.new(1, -32, 0, 16)
+UpgradeList.BackgroundTransparency = 1
+UpgradeList.Parent = WelcomeBanner
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(120, 45, 210)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainFrame
+
+-- Draggable Engine
+local function MakeDraggable(frame)
+	local dragging, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then dragging = false end
+			end)
+		end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+end
+MakeDraggable(MainFrame)
+
+-- Header Bar
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundTransparency = 1
+Header.Parent = MainFrame
+
+local Badge = Instance.new("TextLabel")
+Badge.Text = "APEX"
+Badge.Font = Enum.Font.GothamBold
+Badge.TextSize = 11
+Badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+Badge.BackgroundColor3 = Color3.fromRGB(150, 40, 240)
+Badge.Position = UDim2.new(0, 16, 0, 12)
+Badge.Size = UDim2.fromOffset(50, 24)
+Badge.Parent = Header
+
+local BadgeCorner = Instance.new("UICorner")
+BadgeCorner.CornerRadius = UDim.new(0, 6)
+BadgeCorner.Parent = Badge
+
+local Title = Instance.new("TextLabel")
+Title.Text = "APEX SCRIPT"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Position = UDim2.new(0, 75, 0, 10)
+Title.Size = UDim2.new(0, 200, 0, 16)
+Title.BackgroundTransparency = 1
+Title.Parent = Header
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Text = "V25.5 • CROSSHAIR-POINT AUTO HEADLOCK"
+Subtitle.Font = Enum.Font.GothamMedium
+Subtitle.TextSize = 10
+Subtitle.TextColor3 = Color3.fromRGB(150, 140, 170)
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.Position = UDim2.new(0, 75, 0, 28)
+Subtitle.Size = UDim2.new(0, 280, 0, 14)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Parent = Header
+
+-- Close & Reopen Buttons
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "✕"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(160, 50, 240)
+CloseBtn.Position = UDim2.new(1, -38, 0, 12)
+CloseBtn.Size = UDim2.fromOffset(26, 26)
+CloseBtn.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+
+local ReopenBtn = Instance.new("TextButton")
+ReopenBtn.Text = "⚡ APEX"
+ReopenBtn.Font = Enum.Font.GothamBold
+ReopenBtn.TextSize = 12
+ReopenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+ReopenBtn.BackgroundColor3 = Color3.fromRGB(140, 45, 220)
+ReopenBtn.Position = UDim2.new(0, 20, 0.5, -20)
+ReopenBtn.Size = UDim2.fromOffset(90, 40)
+ReopenBtn.Visible = false
+ReopenBtn.Parent = Gui
+
+local ReopenCorner = Instance.new("UICorner")
+ReopenCorner.CornerRadius = UDim.new(0, 10)
+ReopenCorner.Parent = ReopenBtn
+MakeDraggable(ReopenBtn)
+
+CloseBtn.Activated:Connect(function()
+	MainFrame.Visible = false
+	ReopenBtn.Visible = true
+end)
+
+ReopenBtn.Activated:Connect(function()
+	MainFrame.Visible = true
+	ReopenBtn.Visible = false
+end)
+
+--============================================================
+-- NAVIGATION SIDEBAR & TABS
+--============================================================
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Position = UDim2.new(0, 14, 0, 55)
+Sidebar.Size = UDim2.new(0, 130, 1, -68)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 10)
+SidebarCorner.Parent = Sidebar
+
+local ContentArea = Instance.new("Frame")
+ContentArea.Position = UDim2.new(0, 152, 0, 55)
+ContentArea.Size = UDim2.new(1, -166, 1, -68)
+ContentArea.BackgroundTransparency = 1
+ContentArea.Parent = MainFrame
+
+local Pages = {}
+local TabButtons = {}
+
+local function CreateTab(name)
+	local page = Instance.new("ScrollingFrame")
+	page.Size = UDim2.fromScale(1, 1)
+	page.BackgroundTransparency = 1
+	page.ScrollBarThickness = 3
+	page.ScrollBarImageColor3 = Color3.fromRGB(140, 45, 220)
+	page.Visible = false
+	page.Parent = ContentArea
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 10)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = page
+
+	Pages[name] = page
+	return page
+end
+
+local PageHome     = CreateTab("HOME")
+local PageAim      = CreateTab("AIMBOT")
+local PageVisuals  = CreateTab("VISUALS")
+local PageSettings = CreateTab("SETTINGS")
+local PageCredits  = CreateTab("CREDITS")
+
+local tabList = {"HOME", "AIMBOT", "VISUALS", "SETTINGS", "CREDITS"}
+for i, tabName in ipairs(tabList) do
+	local btn = Instance.new("TextButton")
+	btn.Text = tabName
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 10
+	btn.TextColor3 = (i == 1) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 140, 170)
+	btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(28, 22, 44) or Color3.fromRGB(14, 12, 22)
+	btn.Position = UDim2.new(0, 8, 0, 10 + (i - 1) * 36)
+	btn.Size = UDim2.new(1, -16, 0, 30)
+	btn.Parent = Sidebar
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = btn
+
+	TabButtons[tabName] = btn
+
+	btn.Activated:Connect(function()
+		for name, p in pairs(Pages) do p.Visible = false end
+		for name, b in pairs(TabButtons) do
+			b.BackgroundColor3 = Color3.fromRGB(14, 12, 22)
+			b.TextColor3 = Color3.fromRGB(150, 140, 170)
+		end
+		Pages[tabName].Visible = true
+		btn.BackgroundColor3 = Color3.fromRGB(28, 22, 44)
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end)
+end
+
+Pages["HOME"].Visible = true
+
+--============================================================
+-- HOME PAGE INFO CARD
+--============================================================
+
+local HomeCard = Instance.new("Frame")
+HomeCard.Size = UDim2.new(1, -6, 0, 100)
+HomeCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+HomeCard.Parent = PageHome
+
+local HomeCorner = Instance.new("UICorner")
+HomeCorner.CornerRadius = UDim.new(0, 10)
+HomeCorner.Parent = HomeCard
+
+local HomeTitle = Instance.new("TextLabel")
+HomeTitle.Text = "APEX DASHBOARD"
+HomeTitle.Font = Enum.Font.GothamBold
+HomeTitle.TextSize = 13
+HomeTitle.TextColor3 = Color3.fromRGB(150, 40, 240)
+HomeTitle.Position = UDim2.new(0, 14, 0, 14)
+HomeTitle.Size = UDim2.new(1, -28, 0, 18)
+HomeTitle.BackgroundTransparency = 1
+HomeTitle.TextXAlignment = Enum.TextXAlignment.Left
+HomeTitle.Parent = HomeCard
+
+local HomeDesc = Instance.new("TextLabel")
+HomeDesc.Text = "Welcome to Apex Engine! All toggles are currently turned OFF by default. Navigate to AIMBOT or VISUALS to enable your preferred features, or check your profile in SETTINGS."
+HomeDesc.Font = Enum.Font.Gotham
+HomeDesc.TextSize = 11
+HomeDesc.TextColor3 = Color3.fromRGB(160, 150, 180)
+HomeDesc.Position = UDim2.new(0, 14, 0, 36)
+HomeDesc.Size = UDim2.new(1, -28, 0, 50)
+HomeDesc.TextWrapped = true
+HomeDesc.BackgroundTransparency = 1
+HomeDesc.TextXAlignment = Enum.TextXAlignment.Left
+HomeDesc.Parent = HomeCard
+
+--============================================================
+-- SETTINGS PAGE: PERFORMANCE MONITOR & USER PROFILE CARD
+--============================================================
+
+local PerfCard = Instance.new("Frame")
+PerfCard.Size = UDim2.new(1, -6, 0, 78)
+PerfCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+PerfCard.LayoutOrder = 1
+PerfCard.Parent = PageSettings
+
+local PerfCorner = Instance.new("UICorner")
+PerfCorner.CornerRadius = UDim.new(0, 10)
+PerfCorner.Parent = PerfCard
+
+local PerfStroke = Instance.new("UIStroke")
+PerfStroke.Color = Color3.fromRGB(35, 28, 52)
+PerfStroke.Thickness = 1
+PerfStroke.Parent = PerfCard
+
+local PerfTitle = Instance.new("TextLabel")
+PerfTitle.Text = "SYSTEM PERFORMANCE MONITOR"
+PerfTitle.Font = Enum.Font.GothamBold
+PerfTitle.TextSize = 12
+PerfTitle.TextColor3 = Color3.fromRGB(150, 40, 240)
+PerfTitle.Position = UDim2.new(0, 14, 0, 12)
+PerfTitle.Size = UDim2.new(1, -28, 0, 16)
+PerfTitle.BackgroundTransparency = 1
+PerfTitle.TextXAlignment = Enum.TextXAlignment.Left
+PerfTitle.Parent = PerfCard
+
+local StatsLabel = Instance.new("TextLabel")
+StatsLabel.Text = "FPS: 60 | PING: 0ms | MEMORY: 0 MB"
+StatsLabel.Font = Enum.Font.Code
+StatsLabel.TextSize = 12
+StatsLabel.TextColor3 = Color3.fromRGB(120, 220, 160)
+StatsLabel.Position = UDim2.new(0, 14, 0, 38)
+StatsLabel.Size = UDim2.new(1, -28, 0, 24)
+StatsLabel.BackgroundTransparency = 1
+StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatsLabel.Parent = PerfCard
+
+local ProfileCard = Instance.new("Frame")
+ProfileCard.Size = UDim2.new(1, -6, 0, 110)
+ProfileCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+ProfileCard.BorderSizePixel = 0
+ProfileCard.LayoutOrder = 2
+ProfileCard.Parent = PageSettings
+
+local ProfileCorner = Instance.new("UICorner")
+ProfileCorner.CornerRadius = UDim.new(0, 10)
+ProfileCorner.Parent = ProfileCard
+
+local ProfileStroke = Instance.new("UIStroke")
+ProfileStroke.Color = Color3.fromRGB(140, 45, 220)
+ProfileStroke.Thickness = 1
+ProfileStroke.Parent = ProfileCard
+
+local AvatarImg = Instance.new("ImageLabel")
+AvatarImg.Size = UDim2.fromOffset(74, 74)
+AvatarImg.Position = UDim2.new(0, 18, 0.5, -37)
+AvatarImg.BackgroundColor3 = Color3.fromRGB(25, 20, 38)
+AvatarImg.Image = string.format("rbxthumb://type=AvatarHeadShot&id=%d&w=150&h=150", Player.UserId)
+AvatarImg.Parent = ProfileCard
+
+local AvatarCorner = Instance.new("UICorner")
+AvatarCorner.CornerRadius = UDim.new(0, 12)
+AvatarCorner.Parent = AvatarImg
+
+local AvatarStroke = Instance.new("UIStroke")
+AvatarStroke.Color = Color3.fromRGB(150, 40, 240)
+AvatarStroke.Thickness = 1.5
+AvatarStroke.Parent = AvatarImg
+
+local DisplayNameLabel = Instance.new("TextLabel")
+DisplayNameLabel.Text = Player.DisplayName
+DisplayNameLabel.Font = Enum.Font.GothamBold
+DisplayNameLabel.TextSize = 16
+DisplayNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+DisplayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+DisplayNameLabel.Position = UDim2.new(0, 106, 0, 18)
+DisplayNameLabel.Size = UDim2.new(1, -120, 0, 20)
+DisplayNameLabel.BackgroundTransparency = 1
+DisplayNameLabel.Parent = ProfileCard
+
+local UsernameLabel = Instance.new("TextLabel")
+UsernameLabel.Text = "@" .. Player.Name
+UsernameLabel.Font = Enum.Font.GothamMedium
+UsernameLabel.TextSize = 12
+UsernameLabel.TextColor3 = Color3.fromRGB(150, 140, 170)
+UsernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+UsernameLabel.Position = UDim2.new(0, 106, 0, 42)
+UsernameLabel.Size = UDim2.new(1, -120, 0, 16)
+UsernameLabel.BackgroundTransparency = 1
+UsernameLabel.Parent = ProfileCard
+
+local AccountAgeDays = Player.AccountAge
+local CreationYear = os.date("%Y", os.time() - (AccountAgeDays * 86400))
+
+local AccountLabel = Instance.new("TextLabel")
+AccountLabel.Text = "🗓️ Created: " .. CreationYear .. " (" .. AccountAgeDays .. " days ago)"
+AccountLabel.Font = Enum.Font.GothamMedium
+AccountLabel.TextSize = 11
+AccountLabel.TextColor3 = Color3.fromRGB(120, 220, 160)
+AccountLabel.TextXAlignment = Enum.TextXAlignment.Left
+AccountLabel.Position = UDim2.new(0, 106, 0, 68)
+AccountLabel.Size = UDim2.new(1, -120, 0, 16)
+AccountLabel.BackgroundTransparency = 1
+AccountLabel.Parent = ProfileCard
+
+--============================================================
+-- TOGGLE CARD COMPONENT
+--============================================================
+
+local function CreateToggleCard(parentPage, titleText, descText, initialState, callback)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, -6, 0, 72)
+	card.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+	card.BorderSizePixel = 0
+	card.Parent = parentPage
+
+	local cardCorner = Instance.new("UICorner")
+	cardCorner.CornerRadius = UDim.new(0, 10)
+	cardCorner.Parent = card
+
+	local cardStroke = Instance.new("UIStroke")
+	cardStroke.Color = Color3.fromRGB(35, 28, 52)
+	cardStroke.Thickness = 1
+	cardStroke.Parent = card
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Text = titleText
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 13
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Position = UDim2.new(0, 14, 0, 12)
+	titleLabel.Size = UDim2.new(1, -80, 0, 18)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Parent = card
+
+	local descLabel = Instance.new("TextLabel")
+	descLabel.Text = descText
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextSize = 10
+	descLabel.TextColor3 = Color3.fromRGB(140, 130, 160)
+	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.TextWrapped = true
+	descLabel.Position = UDim2.new(0, 14, 0, 32)
+	descLabel.Size = UDim2.new(1, -85, 0, 32)
+	descLabel.BackgroundTransparency = 1
+	descLabel.Parent = card
+
+	local SwitchFrame = Instance.new("TextButton")
+	SwitchFrame.Text = ""
+	SwitchFrame.AutoButtonColor = false
+	SwitchFrame.Size = UDim2.fromOffset(48, 24)
+	SwitchFrame.Position = UDim2.new(1, -60, 0.5, -12)
+	SwitchFrame.BackgroundColor3 = initialState and Color3.fromRGB(140, 45, 220) or Color3.fromRGB(35, 30, 50)
+	SwitchFrame.Parent = card
+
+	local SwitchCorner = Instance.new("UICorner")
+	SwitchCorner.CornerRadius = UDim.new(1, 0)
+	SwitchCorner.Parent = SwitchFrame
+
+	local Knob = Instance.new("Frame")
+	Knob.Size = UDim2.fromOffset(18, 18)
+	Knob.Position = initialState and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+	Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Knob.Parent = SwitchFrame
+
+	local KnobCorner = Instance.new("UICorner")
+	KnobCorner.CornerRadius = UDim.new(1, 0)
+	KnobCorner.Parent = Knob
+
+	local state = initialState
+	SwitchFrame.Activated:Connect(function()
+		state = not state
+		local targetPos = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+		local targetColor = state and Color3.fromRGB(140, 45, 220) or Color3.fromRGB(35, 30, 50)
+
+		TweenService:Create(Knob, TweenInfo.new(0.18), {Position = targetPos}):Play()
+		TweenService:Create(SwitchFrame, TweenInfo.new(0.18), {BackgroundColor3 = targetColor}):Play()
+
+		callback(state)
+	end)
+end
+
+CreateToggleCard(PageAim, "Master Headlock Engine", "Main switch for target acquisition.", State.AimbotEnabled, function(val)
+	State.AimbotEnabled = val
+end)
+
+CreateToggleCard(PageAim, "Point-To-Activate Lock", "Activates headlock ONLY when your crosshair points directly near an enemy.", State.PointToActivate, function(val)
+	State.PointToActivate = val
+end)
+
+CreateToggleCard(PageAim, "Head Lead Prediction", "Calculates velocity so shots land precisely on moving heads.", State.PredictionEnabled, function(val)
+	State.PredictionEnabled = val
+end)
+
+CreateToggleCard(PageVisuals, "Target Outline", "Highlights target enemy in purple outline when focused.", State.TargetHighlight, function(val)
+	State.TargetHighlight = val
+end)
+
+CreateToggleCard(PageVisuals, "Red Head Tracer", "Draws line from crosshair to enemy head when targeted.", State.TracersEnabled, function(val)
+	State.TracersEnabled = val
+end)
+
+CreateToggleCard(PageVisuals, "Activation Zone Ring", "Shows crosshair proximity zone required to trigger head lock.", State.FOVRingEnabled, function(val)
+	State.FOVRingEnabled = val
+end)
+
+--============================================================
+-- CREDITS TAB
+--============================================================
+
+local function CreateCreditCard(parent, role, username, tag)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, -6, 0, 75)
+	card.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+	card.Parent = parent
+
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(0, 10)
+	cCorner.Parent = card
+
+	local cStroke = Instance.new("UIStroke")
+	cStroke.Color = Color3.fromRGB(140, 45, 220)
+	cStroke.Thickness = 1
+	cStroke.Parent = card
+
+	local roleLabel = Instance.new("TextLabel")
+	roleLabel.Text = role
+	roleLabel.Font = Enum.Font.GothamBold
+	roleLabel.TextSize = 10
+	roleLabel.TextColor3 = Color3.fromRGB(150, 140, 170)
+	roleLabel.Position = UDim2.new(0, 14, 0, 12)
+	roleLabel.Size = UDim2.new(1, -28, 0, 14)
+	roleLabel.BackgroundTransparency = 1
+	roleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	roleLabel.Parent = card
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Text = username
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 15
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.Position = UDim2.new(0, 14, 0, 28)
+	nameLabel.Size = UDim2.new(1, -28, 0, 20)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Parent = card
+
+	local tagLabel = Instance.new("TextLabel")
+	tagLabel.Text = tag
+	tagLabel.Font = Enum.Font.GothamMedium
+	tagLabel.TextSize = 11
+	tagLabel.TextColor3 = Color3.fromRGB(150, 40, 240)
+	tagLabel.Position = UDim2.new(0, 14, 0, 48)
+	tagLabel.Size = UDim2.new(1, -28, 0, 16)
+	tagLabel.BackgroundTransparency = 1
+	tagLabel.TextXAlignment = Enum.TextXAlignment.Left
+	tagLabel.Parent = card
+end
+
+CreateCreditCard(PageCredits, "OWNER / CREATOR", "Fachero_andy", "Roblox Creator & Lead Project Owner")
+CreateCreditCard(PageCredits, "TIKTOK COMMUNITY", "apex_creator1", "Official TikTok Channel")
+CreateCreditCard(PageCredits, "SYSTEM DEVELOPER", "Vexilø", "Apex V25.5 Supreme Engine Developer")
+
+--============================================================
+-- POINTING TARGET DETECTION & LOCK ENGINE
+--============================================================
+
+local FOVRing = Instance.new("Frame")
+FOVRing.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVRing.Position = UDim2.fromScale(0.5, 0.5)
+FOVRing.Size = UDim2.fromOffset(Config.TargetThresholdFOV * 2, Config.TargetThresholdFOV * 2)
+FOVRing.BackgroundTransparency = 1
+FOVRing.Parent = Gui
+
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1, 0)
+FOVCorner.Parent = FOVRing
+
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Color = Color3.fromRGB(150, 40, 240)
+FOVStroke.Thickness = 1.5
+FOVStroke.Transparency = 0.4
+FOVStroke.Parent = FOVRing
+
+local Tracer = Instance.new("Frame")
+Tracer.AnchorPoint = Vector2.new(0.5, 0.5)
+Tracer.BackgroundColor3 = Color3.fromRGB(255, 45, 65)
+Tracer.BorderSizePixel = 0
+Tracer.Visible = false
+Tracer.Parent = Gui
+
+local function UpdateTracer(targetPos3D)
+	if not State.TracersEnabled or not targetPos3D then
+		Tracer.Visible = false
+		return
+	end
+	local screenPos, onScreen = Camera:WorldToViewportPoint(targetPos3D)
+	if not onScreen then
+		Tracer.Visible = false
+		return
+	end
+	local viewportSize = Camera.ViewportSize
+	local startPos = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+	local endPos = Vector2.new(screenPos.X, screenPos.Y)
+	local distance = (endPos - startPos).Magnitude
+	local center = (startPos + endPos) / 2
+	local angle = math.deg(math.atan2(endPos.Y - startPos.Y, endPos.X - startPos.X))
+
+	Tracer.Size = UDim2.fromOffset(distance, 2)
+	Tracer.Position = UDim2.fromOffset(center.X, center.Y)
+	Tracer.Rotation = angle
+	Tracer.Visible = true
+end
+
+local function GetEnemyUnderCrosshair()
+	local localChar = Player.Character
+	local localRoot = localChar and localChar:FindFirstChild("HumanoidRootPart")
+	if not localRoot then return nil end
+
+	local viewportCenter = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+	local closestHead = nil
+	local closestScreenDist = Config.TargetThresholdFOV
+
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other ~= Player and other.Character then
+			local hum = other.Character:FindFirstChildOfClass("Humanoid")
+			local head = other.Character:FindFirstChild("Head")
+
+			if hum and hum.Health > 0 and head then
+				local worldDist = (localRoot.Position - head.Position).Magnitude
+				if worldDist <= Config.MaxDistance then
+					local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+					if onScreen then
+						local screenDist = (Vector2.new(screenPos.X, screenPos.Y) - viewportCenter).Magnitude
+						if screenDist < closestScreenDist then
+							closestHead = head
+							closestScreenDist = screenDist
+						end
+					end
+				end
+			end
+		end
+	end
+	return closestHead
+end
+
+local function ApplyHighlight(char)
+	if State.HighlightObj and State.HighlightObj.Parent ~= char then
+		State.HighlightObj:Destroy()
+		State.HighlightObj = nil
+	end
+	if char and State.TargetHighlight and not State.HighlightObj then
+		local hl = Instance.new("Highlight")
+		hl.Adornee = char
+		hl.FillColor = Color3.fromRGB(150, 40, 240)
+		hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+		hl.FillTransparency = 0.5
+		hl.Parent = char
+		State.HighlightObj = hl
+	end
+end
+
+local lastCheck = tick()
+local frames = 0
+
+RunService.RenderStepped:Connect(function()
+	frames = frames + 1
+	if tick() - lastCheck >= 1 then
+		local ping = math.floor(StatsService.Network.ServerStatsItem["Data Ping"]:GetValue())
+		local mem = math.floor(StatsService:GetTotalMemoryUsageMb())
+		StatsLabel.Text = "FPS: " .. frames .. " | PING: " .. ping .. "ms | MEMORY: " .. mem .. " MB"
+		frames = 0
+		lastCheck = tick()
+	end
+
+	FOVRing.Visible = State.FOVRingEnabled
+
+	if not State.AimbotEnabled then
+		Tracer.Visible = false
+		if State.HighlightObj then State.HighlightObj:Destroy() State.HighlightObj = nil end
+		return
+	end
+
+	local targetHead = GetEnemyUnderCrosshair()
+
+	if targetHead then
+		local targetPos = targetHead.Position
+		if State.PredictionEnabled and targetHead.AssemblyLinearVelocity then
+			targetPos = targetPos + (targetHead.AssemblyLinearVelocity * Config.Prediction)
+		end
+
+		local currentCF = Camera.CFrame
+		local targetCF = CFrame.lookAt(currentCF.Position, targetPos)
+		Camera.CFrame = currentCF:Lerp(targetCF, Config.Smoothness)
+
+		ApplyHighlight(targetHead.Parent)
+		UpdateTracer(targetPos)
+	else
+		Tracer.Visible = false
+		if State.HighlightObj then State.HighlightObj:Destroy() State.HighlightObj = nil end
+	end
+end)
