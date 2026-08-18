@@ -1,0 +1,1214 @@
+--============================================================
+--     APEX SCRIPT V26.9 SUPREME • PRISON LIFE ENGINE
+--   OWNER / CREATOR: Fachero_andy | TIKTOK: @apex_creator1
+--============================================================
+
+local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local Camera = Workspace.CurrentCamera
+
+--============================================================
+-- DYNAMIC THEME SYSTEM & STATE ENGINE
+--============================================================
+
+local PrimaryThemeColor = Color3.fromRGB(120, 45, 210)
+local ActiveStrokes = {}
+local ThemedBackgrounds = {}
+local ThemedButtons = {}
+local ReopenBtn, ReopenStroke
+
+local function RegisterStroke(stroke)
+	table.insert(ActiveStrokes, stroke)
+	stroke.Color = PrimaryThemeColor
+end
+
+local function RegisterThemedBackground(btn)
+	table.insert(ThemedBackgrounds, btn)
+	btn.BackgroundColor3 = PrimaryThemeColor
+end
+
+local function RegisterThemedButton(btn)
+	table.insert(ThemedButtons, btn)
+	btn.BackgroundColor3 = PrimaryThemeColor
+end
+
+local function UpdateThemeColors(newColor)
+	PrimaryThemeColor = newColor
+	for _, stroke in ipairs(ActiveStrokes) do
+		if stroke and stroke.Parent then
+			stroke.Color = PrimaryThemeColor
+		end
+	end
+	for _, btn in ipairs(ThemedBackgrounds) do
+		if btn and btn.Parent then
+			btn.BackgroundColor3 = PrimaryThemeColor
+		end
+	end
+	for _, btn in ipairs(ThemedButtons) do
+		if btn and btn.Parent then
+			btn.BackgroundColor3 = PrimaryThemeColor
+		end
+	end
+	if ReopenBtn then
+		ReopenBtn.BackgroundColor3 = PrimaryThemeColor
+		if ReopenStroke then
+			ReopenStroke.Color = PrimaryThemeColor
+		end
+	end
+end
+
+_G.ApexSpeed = false
+_G.ApexJump = false
+_G.ApexStamina = false
+_G.ApexShieldRemover = false
+_G.ApexFpsBooster = false
+_G.ApexESP = false
+
+-- APEX SUPREME • INSTANT HARD-LOCK AIMBOT ENGINE GLOBAL CONFIGS
+_G.ApexTrackingEnabled = true
+_G.TargetInmates = true
+_G.TargetCriminals = true
+_G.TargetGuards = true
+_G.TrackingRadius = 250
+
+-- Continuous Render Loops for Player Modifications
+RunService.RenderStepped:Connect(function()
+	local char = Player.Character
+	if char then
+		local hum = char:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.WalkSpeed = _G.ApexSpeed and 28 or 16
+			
+			if _G.ApexJump then
+				hum.UseJumpPower = true
+				hum.JumpPower = 120
+				hum.JumpHeight = 50
+			else
+				hum.JumpPower = 50
+				hum.JumpHeight = 7.2
+			end
+		end
+	end
+end)
+
+-- Dedicated Infinite Stamina Loop
+local staminaLoop
+staminaLoop = RunService.Heartbeat:Connect(function()
+	if _G.ApexStamina then
+		local character = Player.Character
+		if character then
+			local sprintScript = character:FindFirstChild("SprintScript") or character:FindFirstChild("LocalScript")
+			if sprintScript then
+				local staminaValue = sprintScript:FindFirstChild("Stamina") or character:FindFirstChild("Stamina")
+				if staminaValue then
+					staminaValue.Value = 100
+				end
+			end
+		end
+	end
+end)
+
+-- Dedicated Shield Remover Loop
+local shieldLoop
+shieldLoop = RunService.Heartbeat:Connect(function()
+	if _G.ApexShieldRemover then
+		for _, object in ipairs(Workspace:GetDescendants()) do
+			if object.Name == "Shield" or object.Name == "RiotShield" then
+				if object:IsA("BasePart") then
+					object.CanCollide = false
+					object.Transparency = 0.7
+				end
+			end
+		end
+	end
+end)
+
+--============================================================
+-- SCREEN GUI INITIALIZATION
+--============================================================
+
+local Gui = Instance.new("ScreenGui")
+Gui.Name = "ApexPrisonLifeSystem"
+Gui.ResetOnSpawn = false
+Gui.IgnoreGuiInset = true
+Gui.Parent = PlayerGui
+
+--============================================================
+-- KEY SYSTEM GUI (APEX SECURE AUTH)
+--============================================================
+
+local allowedKeys = {
+	["apex"] = true
+}
+
+local function NormalizeKey(inputKey)
+	return string.lower(string.gsub(inputKey, "%s+", ""))
+end
+
+local KeyWindow = Instance.new("Frame")
+KeyWindow.Name = "KeyWindow"
+KeyWindow.AnchorPoint = Vector2.new(0.5, 0.5)
+KeyWindow.Position = UDim2.fromScale(0.5, 0.5)
+KeyWindow.Size = UDim2.fromOffset(420, 240)
+KeyWindow.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+KeyWindow.BorderSizePixel = 0
+KeyWindow.Parent = Gui
+
+local KeyWindowCorner = Instance.new("UICorner")
+KeyWindowCorner.CornerRadius = UDim.new(0, 14)
+KeyWindowCorner.Parent = KeyWindow
+
+local KeyWindowStroke = Instance.new("UIStroke")
+KeyWindowStroke.Thickness = 2
+RegisterStroke(KeyWindowStroke)
+KeyWindowStroke.Parent = KeyWindow
+
+local KeyTitle = Instance.new("TextLabel")
+KeyTitle.Text = "APEX SECURITY • AUTHENTICATION"
+KeyTitle.Font = Enum.Font.GothamBold
+KeyTitle.TextSize = 13
+KeyTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyTitle.Position = UDim2.new(0, 20, 0, 18)
+KeyTitle.Size = UDim2.new(1, -40, 0, 18)
+KeyTitle.BackgroundTransparency = 1
+KeyTitle.TextXAlignment = Enum.TextXAlignment.Left
+KeyTitle.Parent = KeyWindow
+
+local KeySubtitle = Instance.new("TextLabel")
+KeySubtitle.Text = "Please enter your access key to unlock APEX Supreme."
+KeySubtitle.Font = Enum.Font.Gotham
+KeySubtitle.TextSize = 11
+KeySubtitle.TextColor3 = Color3.fromRGB(150, 140, 170)
+KeySubtitle.Position = UDim2.new(0, 20, 0, 38)
+KeySubtitle.Size = UDim2.new(1, -40, 0, 16)
+KeySubtitle.BackgroundTransparency = 1
+KeySubtitle.TextXAlignment = Enum.TextXAlignment.Left
+KeySubtitle.Parent = KeyWindow
+
+local TextBoxBg = Instance.new("Frame")
+TextBoxBg.Position = UDim2.new(0, 20, 0, 75)
+TextBoxBg.Size = UDim2.new(1, -40, 0, 45)
+TextBoxBg.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+TextBoxBg.Parent = KeyWindow
+
+local TextBoxBgCorner = Instance.new("UICorner")
+TextBoxBgCorner.CornerRadius = UDim.new(0, 8)
+TextBoxBgCorner.Parent = TextBoxBg
+
+local TextBoxBgStroke = Instance.new("UIStroke")
+TextBoxBgStroke.Thickness = 1
+RegisterStroke(TextBoxBgStroke)
+TextBoxBgStroke.Parent = TextBoxBg
+
+local KeyTextBox = Instance.new("TextBox")
+KeyTextBox.Text = ""
+KeyTextBox.PlaceholderText = "Enter key here..."
+KeyTextBox.PlaceholderColor3 = Color3.fromRGB(100, 90, 120)
+KeyTextBox.Font = Enum.Font.GothamMedium
+KeyTextBox.TextSize = 13
+KeyTextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+KeyTextBox.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+KeyTextBox.Position = UDim2.new(0, 15, 0, 0)
+KeyTextBox.Size = UDim2.new(1, -30, 1, 0)
+KeyTextBox.ClearTextOnFocus = false
+KeyTextBox.BackgroundTransparency = 1
+KeyTextBox.Parent = TextBoxBg
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Text = ""
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 11
+StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+StatusLabel.Position = UDim2.new(0, 20, 0, 128)
+StatusLabel.Size = UDim2.new(1, -40, 0, 16)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.Parent = KeyWindow
+
+local SubmitBtn = Instance.new("TextButton")
+SubmitBtn.Text = "SUBMIT KEY"
+SubmitBtn.Font = Enum.Font.GothamBold
+SubmitBtn.TextSize = 12
+SubmitBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RegisterThemedBackground(SubmitBtn)
+SubmitBtn.Position = UDim2.new(0, 20, 0, 160)
+SubmitBtn.Size = UDim2.new(1, -40, 0, 42)
+SubmitBtn.Parent = KeyWindow
+
+local SubmitBtnCorner = Instance.new("UICorner")
+SubmitBtnCorner.CornerRadius = UDim.new(0, 8)
+SubmitBtnCorner.Parent = SubmitBtn
+
+-- Loading Screen Frame (Hidden Initially)
+local LoadingFrame = Instance.new("Frame")
+LoadingFrame.Name = "LoadingFrame"
+LoadingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingFrame.Position = UDim2.fromScale(0.5, 0.5)
+LoadingFrame.Size = UDim2.fromOffset(420, 240)
+LoadingFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+LoadingFrame.BorderSizePixel = 0
+LoadingFrame.Visible = false
+LoadingFrame.Parent = Gui
+
+local LoadingCorner = Instance.new("UICorner")
+LoadingCorner.CornerRadius = UDim.new(0, 14)
+LoadingCorner.Parent = LoadingFrame
+
+local LoadingStroke = Instance.new("UIStroke")
+LoadingStroke.Thickness = 2
+RegisterStroke(LoadingStroke)
+LoadingStroke.Parent = LoadingFrame
+
+local LoadingTitle = Instance.new("TextLabel")
+LoadingTitle.Text = "APEX INITIALIZATION"
+LoadingTitle.Font = Enum.Font.GothamBold
+LoadingTitle.TextSize = 14
+LoadingTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingTitle.Position = UDim2.new(0, 20, 0, 60)
+LoadingTitle.Size = UDim2.new(1, -40, 0, 20)
+LoadingTitle.BackgroundTransparency = 1
+LoadingTitle.Parent = LoadingFrame
+
+local LoadingStatus = Instance.new("TextLabel")
+LoadingStatus.Text = "Verifying assets..."
+LoadingStatus.Font = Enum.Font.Gotham
+LoadingStatus.TextSize = 11
+LoadingStatus.TextColor3 = Color3.fromRGB(150, 140, 170)
+LoadingStatus.Position = UDim2.new(0, 20, 0, 85)
+LoadingStatus.Size = UDim2.new(1, -40, 0, 16)
+LoadingStatus.BackgroundTransparency = 1
+LoadingStatus.Parent = LoadingFrame
+
+local BarBg = Instance.new("Frame")
+BarBg.Position = UDim2.new(0, 20, 0, 125)
+BarBg.Size = UDim2.new(1, -40, 0, 8)
+BarBg.BackgroundColor3 = Color3.fromRGB(25, 20, 35)
+BarBg.Parent = LoadingFrame
+
+local BarBgCorner = Instance.new("UICorner")
+BarBgCorner.CornerRadius = UDim.new(1, 0)
+BarBgCorner.Parent = BarBg
+
+local BarFill = Instance.new("Frame")
+BarFill.Size = UDim2.new(0, 0, 1, 0)
+BarFill.BackgroundColor3 = PrimaryThemeColor
+RegisterThemedBackground(BarFill)
+BarFill.Parent = BarBg
+
+local BarFillCorner = Instance.new("UICorner")
+BarFillCorner.CornerRadius = UDim.new(1, 0)
+BarFillCorner.Parent = BarFill
+
+--============================================================
+-- MAIN FRAME & NAVIGATION (Hidden Until Authenticated)
+--============================================================
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+MainFrame.Size = UDim2.fromOffset(630, 420)
+MainFrame.BackgroundColor3 = Color3.fromRGB(12, 10, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false
+MainFrame.Parent = Gui
+
+local MainScale = Instance.new("UIScale")
+MainScale.Name = "MainScale"
+MainScale.Scale = 1.0
+MainScale.Parent = MainFrame
+
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0, 14)
+MainCorner.Parent = MainFrame
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Thickness = 2
+RegisterStroke(MainStroke)
+MainStroke.Parent = MainFrame
+
+local function MakeDraggable(frame)
+	local dragging, dragInput, dragStart, startPos
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true
+			dragStart = input.Position
+			startPos = frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState == Enum.UserInputState.End then
+					dragging = false
+				end
+			end)
+		end
+	end)
+	frame.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+			dragInput = input
+		end
+	end)
+	UIS.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+		end
+	end)
+end
+MakeDraggable(MainFrame)
+MakeDraggable(KeyWindow)
+MakeDraggable(LoadingFrame)
+
+-- Key Submission Flow Connection
+SubmitBtn.Activated:Connect(function()
+	local normalizedInput = NormalizeKey(KeyTextBox.Text)
+	
+	if allowedKeys[normalizedInput] then
+		StatusLabel.TextColor3 = Color3.fromRGB(50, 255, 100)
+		StatusLabel.Text = "Key accepted."
+		SubmitBtn.Text = "ACCESS GRANTED"
+		
+		task.wait(1)
+		KeyWindow.Visible = false
+		LoadingFrame.Visible = true
+		
+		LoadingStatus.Text = "Loading core modules..."
+		TweenService:Create(BarFill, TweenInfo.new(0.6), {Size = UDim2.new(0.4, 0, 1, 0)}):Play()
+		task.wait(0.7)
+		
+		LoadingStatus.Text = "System ready"
+		TweenService:Create(BarFill, TweenInfo.new(0.6), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+		task.wait(0.8)
+		
+		LoadingFrame.Visible = false
+		MainFrame.Visible = true
+	else
+		StatusLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
+		StatusLabel.Text = "Invalid key."
+		KeyTextBox.Text = ""
+	end
+end)
+
+-- Header Bar
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 50)
+Header.BackgroundTransparency = 1
+Header.Parent = MainFrame
+
+local Badge = Instance.new("TextLabel")
+Badge.Text = "APEX"
+Badge.Font = Enum.Font.GothamBold
+Badge.TextSize = 11
+Badge.TextColor3 = Color3.fromRGB(255, 255, 255)
+RegisterThemedBackground(Badge)
+Badge.Position = UDim2.new(0, 16, 0, 12)
+Badge.Size = UDim2.fromOffset(50, 24)
+Badge.Parent = Header
+
+local BadgeCorner = Instance.new("UICorner")
+BadgeCorner.CornerRadius = UDim.new(0, 6)
+BadgeCorner.Parent = Badge
+
+local Title = Instance.new("TextLabel")
+Title.Text = "APEX PRISON LIFE"
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Position = UDim2.new(0, 75, 0, 10)
+Title.Size = UDim2.new(0, 200, 0, 16)
+Title.BackgroundTransparency = 1
+Title.Parent = Header
+
+local Subtitle = Instance.new("TextLabel")
+Subtitle.Text = "V26.9 • ULTIMATE SUPREME HUB"
+Subtitle.Font = Enum.Font.GothamMedium
+Subtitle.TextSize = 10
+Subtitle.TextColor3 = Color3.fromRGB(150, 140, 170)
+Subtitle.TextXAlignment = Enum.TextXAlignment.Left
+Subtitle.Position = UDim2.new(0, 75, 0, 28)
+Subtitle.Size = UDim2.new(0, 280, 0, 14)
+Subtitle.BackgroundTransparency = 1
+Subtitle.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Text = "✕"
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 14
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RegisterThemedBackground(CloseBtn)
+CloseBtn.Position = UDim2.new(1, -38, 0, 12)
+CloseBtn.Size = UDim2.fromOffset(26, 26)
+CloseBtn.Parent = Header
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 8)
+CloseCorner.Parent = CloseBtn
+
+ReopenBtn = Instance.new("TextButton")
+ReopenBtn.Text = "⚡ APEX"
+ReopenBtn.Font = Enum.Font.GothamBold
+ReopenBtn.TextSize = 12
+ReopenBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+RegisterThemedButton(ReopenBtn)
+ReopenBtn.Position = UDim2.new(0, 20, 0.5, -20)
+ReopenBtn.Size = UDim2.fromOffset(90, 40)
+ReopenBtn.Visible = false
+ReopenBtn.Parent = Gui
+
+ReopenStroke = Instance.new("UIStroke")
+ReopenStroke.Thickness = 2
+RegisterStroke(ReopenStroke)
+ReopenStroke.Parent = ReopenBtn
+
+local ReopenCorner = Instance.new("UICorner")
+ReopenCorner.CornerRadius = UDim.new(0, 10)
+ReopenCorner.Parent = ReopenBtn
+MakeDraggable(ReopenBtn)
+
+CloseBtn.Activated:Connect(function()
+	MainFrame.Visible = false
+	ReopenBtn.Visible = true
+end)
+
+ReopenBtn.Activated:Connect(function()
+	MainFrame.Visible = true
+	ReopenBtn.Visible = false
+end)
+
+--============================================================
+-- NAVIGATION SIDEBAR & TABS
+--============================================================
+
+local Sidebar = Instance.new("Frame")
+Sidebar.Position = UDim2.new(0, 14, 0, 55)
+Sidebar.Size = UDim2.new(0, 130, 1, -68)
+Sidebar.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+Sidebar.BorderSizePixel = 0
+Sidebar.Parent = MainFrame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 10)
+SidebarCorner.Parent = Sidebar
+
+local ContentArea = Instance.new("Frame")
+ContentArea.Position = UDim2.new(0, 152, 0, 55)
+ContentArea.Size = UDim2.new(1, -166, 1, -68)
+ContentArea.BackgroundTransparency = 1
+ContentArea.Parent = MainFrame
+
+local Pages = {}
+local TabButtons = {}
+
+local function CreateTab(name)
+	local page = Instance.new("ScrollingFrame")
+	page.Size = UDim2.fromScale(1, 1)
+	page.BackgroundTransparency = 1
+	page.ScrollBarThickness = 3
+	page.ScrollBarImageColor3 = Color3.fromRGB(140, 45, 220)
+	page.Visible = false
+	page.Parent = ContentArea
+
+	local layout = Instance.new("UIListLayout")
+	layout.Padding = UDim.new(0, 10)
+	layout.SortOrder = Enum.SortOrder.LayoutOrder
+	layout.Parent = page
+
+	Pages[name] = page
+	return page
+end
+
+local PageWelcome  = CreateTab("WELCOME")
+local PageCombat   = CreateTab("COMBAT")
+local PagePlayer   = CreateTab("PLAYER")
+local PageTeleport = CreateTab("TELEPORT")
+local PageVisuals  = CreateTab("VISUALS")
+local PageCredits  = CreateTab("CREDITS")
+local PageSettings = CreateTab("SETTINGS")
+
+local tabList = {"WELCOME", "COMBAT", "PLAYER", "TELEPORT", "CREDITS", "SETTINGS"}
+for i, tabName in ipairs(tabList) do
+	local btn = Instance.new("TextButton")
+	btn.Text = tabName
+	btn.Font = Enum.Font.GothamBold
+	btn.TextSize = 10
+	btn.TextColor3 = (i == 1) and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 140, 170)
+	btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(28, 22, 44) or Color3.fromRGB(14, 12, 22)
+	btn.Position = UDim2.new(0, 8, 0, 10 + (i - 1) * 36)
+	btn.Size = UDim2.new(1, -16, 0, 30)
+	btn.Parent = Sidebar
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = btn
+
+	TabButtons[tabName] = btn
+
+	btn.Activated:Connect(function()
+		for name, p in pairs(Pages) do p.Visible = false end
+		for name, b in pairs(TabButtons) do
+			b.BackgroundColor3 = Color3.fromRGB(14, 12, 22)
+			b.TextColor3 = Color3.fromRGB(150, 140, 170)
+		end
+		Pages[tabName].Visible = true
+		btn.BackgroundColor3 = Color3.fromRGB(28, 22, 44)
+		btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	end)
+end
+
+Pages["WELCOME"].Visible = true
+
+--============================================================
+-- UI CARD BUILDERS
+--============================================================
+
+local function CreateActionCard(parentPage, titleText, descText, buttonText, callback)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, -6, 0, 72)
+	card.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+	card.BorderSizePixel = 0
+	card.Parent = parentPage
+
+	local cardCorner = Instance.new("UICorner")
+	cardCorner.CornerRadius = UDim.new(0, 10)
+	cardCorner.Parent = card
+
+	local cardStroke = Instance.new("UIStroke")
+	cardStroke.Thickness = 1
+	RegisterStroke(cardStroke)
+	cardStroke.Parent = card
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Text = titleText
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 13
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Position = UDim2.new(0, 14, 0, 12)
+	titleLabel.Size = UDim2.new(1, -110, 0, 18)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Parent = card
+
+	local descLabel = Instance.new("TextLabel")
+	descLabel.Text = descText
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextSize = 10
+	descLabel.TextColor3 = Color3.fromRGB(140, 130, 160)
+	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.TextWrapped = true
+	descLabel.Position = UDim2.new(0, 14, 0, 32)
+	descLabel.Size = UDim2.new(1, -115, 0, 32)
+	descLabel.BackgroundTransparency = 1
+	descLabel.Parent = card
+
+	local ActionBtn = Instance.new("TextButton")
+	ActionBtn.Text = buttonText
+	ActionBtn.Font = Enum.Font.GothamBold
+	ActionBtn.TextSize = 11
+	ActionBtn.TextScaled = true
+	ActionBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+	ActionBtn.Size = UDim2.fromOffset(85, 32)
+	ActionBtn.Position = UDim2.new(1, -95, 0.5, -16)
+	RegisterThemedBackground(ActionBtn)
+	ActionBtn.Parent = card
+
+	local btnConstraint = Instance.new("UITextSizeConstraint")
+	btnConstraint.MaxTextSize = 14
+	btnConstraint.Parent = ActionBtn
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 8)
+	btnCorner.Parent = ActionBtn
+
+	local activeState = false
+	ActionBtn.Activated:Connect(function()
+		activeState = not activeState
+		callback(ActionBtn, activeState)
+	end)
+end
+
+local function CreateToggleCard(parentPage, titleText, descText, initialState, callback)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, -6, 0, 72)
+	card.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+	card.BorderSizePixel = 0
+	card.Parent = parentPage
+
+	local cardCorner = Instance.new("UICorner")
+	cardCorner.CornerRadius = UDim.new(0, 10)
+	cardCorner.Parent = card
+
+	local cardStroke = Instance.new("UIStroke")
+	cardStroke.Thickness = 1
+	RegisterStroke(cardStroke)
+	cardStroke.Parent = card
+
+	local titleLabel = Instance.new("TextLabel")
+	titleLabel.Text = titleText
+	titleLabel.Font = Enum.Font.GothamBold
+	titleLabel.TextSize = 13
+	titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	titleLabel.Position = UDim2.new(0, 14, 0, 12)
+	titleLabel.Size = UDim2.new(1, -80, 0, 18)
+	titleLabel.BackgroundTransparency = 1
+	titleLabel.Parent = card
+
+	local descLabel = Instance.new("TextLabel")
+	descLabel.Text = descText
+	descLabel.Font = Enum.Font.Gotham
+	descLabel.TextSize = 10
+	descLabel.TextColor3 = Color3.fromRGB(140, 130, 160)
+	descLabel.TextXAlignment = Enum.TextXAlignment.Left
+	descLabel.TextWrapped = true
+	descLabel.Position = UDim2.new(0, 14, 0, 32)
+	descLabel.Size = UDim2.new(1, -85, 0, 32)
+	descLabel.BackgroundTransparency = 1
+	descLabel.Parent = card
+
+	local SwitchFrame = Instance.new("TextButton")
+	SwitchFrame.Text = ""
+	SwitchFrame.AutoButtonColor = false
+	SwitchFrame.Size = UDim2.fromOffset(48, 24)
+	SwitchFrame.Position = UDim2.new(1, -60, 0.5, -12)
+	SwitchFrame.BackgroundColor3 = initialState and PrimaryThemeColor or Color3.fromRGB(35, 30, 50)
+	SwitchFrame.Parent = card
+
+	if initialState then
+		RegisterThemedBackground(SwitchFrame)
+	end
+
+	local SwitchCorner = Instance.new("UICorner")
+	SwitchCorner.CornerRadius = UDim.new(1, 0)
+	SwitchCorner.Parent = SwitchFrame
+
+	local Knob = Instance.new("Frame")
+	Knob.Size = UDim2.fromOffset(18, 18)
+	Knob.Position = initialState and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+	Knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Knob.Parent = SwitchFrame
+
+	local KnobCorner = Instance.new("UICorner")
+	KnobCorner.CornerRadius = UDim.new(1, 0)
+	KnobCorner.Parent = Knob
+
+	local state = initialState
+	SwitchFrame.Activated:Connect(function()
+		state = not state
+		local targetPos = state and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+		local targetColor = state and PrimaryThemeColor or Color3.fromRGB(35, 30, 50)
+
+		TweenService:Create(Knob, TweenInfo.new(0.18), {Position = targetPos}):Play()
+		TweenService:Create(SwitchFrame, TweenInfo.new(0.18), {BackgroundColor3 = targetColor}):Play()
+
+		callback(state)
+	end)
+end
+
+--============================================================
+-- WELCOME TAB CONTENT
+--============================================================
+
+local welcomeCard = Instance.new("Frame")
+welcomeCard.Size = UDim2.new(1, -6, 0, 110)
+welcomeCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+welcomeCard.Parent = PageWelcome
+
+local wCorner = Instance.new("UICorner")
+wCorner.CornerRadius = UDim.new(0, 10)
+wCorner.Parent = welcomeCard
+
+local wStroke = Instance.new("UIStroke")
+wStroke.Thickness = 1
+RegisterStroke(wStroke)
+wStroke.Parent = welcomeCard
+
+local welcomeTitle = Instance.new("TextLabel")
+welcomeTitle.Text = "Welcome, " .. (Player.DisplayName ~= "" and Player.DisplayName .. " (@" .. Player.Name .. ")" or Player.Name) .. "!"
+welcomeTitle.Font = Enum.Font.GothamBold
+welcomeTitle.TextSize = 13
+welcomeTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+welcomeTitle.Position = UDim2.new(0, 14, 0, 12)
+welcomeTitle.Size = UDim2.new(1, -28, 0, 18)
+welcomeTitle.BackgroundTransparency = 1
+welcomeTitle.TextXAlignment = Enum.TextXAlignment.Left
+welcomeTitle.Parent = welcomeCard
+
+local welcomeDesc = Instance.new("TextLabel")
+welcomeDesc.Text = "Hello! Welcome to the ultimate APEX Supreme engine built exclusively for Prison Life. Customize your experience below and rule the server."
+welcomeDesc.Font = Enum.Font.Gotham
+welcomeDesc.TextSize = 10
+welcomeDesc.TextColor3 = Color3.fromRGB(140, 130, 160)
+welcomeDesc.Position = UDim2.new(0, 14, 0, 34)
+welcomeDesc.Size = UDim2.new(1, -28, 0, 36)
+welcomeDesc.BackgroundTransparency = 1
+welcomeDesc.TextXAlignment = Enum.TextXAlignment.Left
+welcomeDesc.TextWrapped = true
+welcomeDesc.Parent = welcomeCard
+
+local serverIdLabel = Instance.new("TextLabel")
+serverIdLabel.Text = "Current Server ID: " .. game.JobId
+serverIdLabel.Font = Enum.Font.GothamBold
+serverIdLabel.TextSize = 10
+serverIdLabel.TextColor3 = Color3.fromRGB(150, 40, 240)
+serverIdLabel.Position = UDim2.new(0, 14, 0, 76)
+serverIdLabel.Size = UDim2.new(1, -28, 0, 16)
+serverIdLabel.BackgroundTransparency = 1
+serverIdLabel.TextXAlignment = Enum.TextXAlignment.Left
+serverIdLabel.Parent = welcomeCard
+
+CreateToggleCard(PageWelcome, "Master ESP Switch", "Instantly toggle all player visual ESP overlays on or off.", false, function(val)
+	_G.ApexESP = val
+end)
+
+local changelogCard = Instance.new("Frame")
+changelogCard.Size = UDim2.new(1, -6, 0, 115)
+changelogCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+changelogCard.Parent = PageWelcome
+
+local clCorner = Instance.new("UICorner")
+clCorner.CornerRadius = UDim.new(0, 10)
+clCorner.Parent = changelogCard
+
+local clStroke = Instance.new("UIStroke")
+clStroke.Thickness = 1
+RegisterStroke(clStroke)
+clStroke.Parent = changelogCard
+
+local clTitle = Instance.new("TextLabel")
+clTitle.Text = "Update Changelog & Features"
+clTitle.Font = Enum.Font.GothamBold
+clTitle.TextSize = 12
+clTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+clTitle.Position = UDim2.new(0, 14, 0, 10)
+clTitle.Size = UDim2.new(1, -28, 0, 16)
+clTitle.BackgroundTransparency = 1
+clTitle.TextXAlignment = Enum.TextXAlignment.Left
+clTitle.Parent = changelogCard
+
+local clText = Instance.new("TextLabel")
+clText.Text = "[ADDED] Secure Key System verification.\n[ADDED] Brand new interactive Settings page.\n[UPGRADED] APEX Absolute Verified Gun Giver Engine.\n[FIXED] Character state resets after death glitch."
+clText.Font = Enum.Font.Gotham
+clText.TextSize = 10
+clText.TextColor3 = Color3.fromRGB(140, 130, 160)
+clText.Position = UDim2.new(0, 14, 0, 30)
+clText.Size = UDim2.new(1, -28, 0, 75)
+clText.BackgroundTransparency = 1
+clText.TextXAlignment = Enum.TextXAlignment.Left
+clText.TextWrapped = true
+clText.Parent = changelogCard
+
+--============================================================
+-- COMBAT TAB FEATURES
+--============================================================
+
+CreateToggleCard(PageCombat, "Shield Remover", "Disables shield physics and fades them out so you can shoot through riot shields.", false, function(val)
+	_G.ApexShieldRemover = val
+end)
+
+CreateToggleCard(PageCombat, "Apex Instant Hard-Lock Aimbot", "Master switch for the instant hard-lock target snapping engine.", true, function(val)
+	_G.ApexTrackingEnabled = val
+end)
+
+CreateToggleCard(PageCombat, "Target Inmates", "Enable target locking on Inmate players.", true, function(val)
+	_G.TargetInmates = val
+end)
+
+CreateToggleCard(PageCombat, "Target Criminals", "Enable target locking on Criminal players.", true, function(val)
+	_G.TargetCriminals = val
+end)
+
+CreateToggleCard(PageCombat, "Target Guards", "Enable target locking on Guard officers.", true, function(val)
+	_G.TargetGuards = val
+end)
+
+-- APEX SUPREME • INSTANT HARD-LOCK AIMBOT ENGINE
+local activeTarget = nil
+
+local function IsLethalThreat(targetPlayer)
+    if not targetPlayer.Character then return false end
+    local equippedTool = targetPlayer.Character:FindFirstChildOfClass("Tool")
+    
+    if equippedTool then
+        local safeItems = {["Keycard"] = true, ["Crude Knife"] = true, ["Donut"] = true}
+        if not safeItems[equippedTool.Name] then
+            return true
+        end
+    end
+    return false
+end
+
+local function FindValidApexTarget()
+    local closestPlayer = nil
+    local shortestDistance = _G.TrackingRadius
+    local localTeam = Player.Team and Player.Team.Name or ""
+
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= Player and p.Character and p.Character:FindFirstChild("Head") and p.Character:FindFirstChild("Humanoid") then
+            if p.Character.Humanoid.Health > 0 then
+                local enemyTeam = p.Team and p.Team.Name or ""
+                
+                if localTeam ~= enemyTeam then
+                    local isValidTarget = false
+                    
+                    if localTeam == "Guards" then
+                        if _G.TargetCriminals and enemyTeam == "Criminals" then
+                            isValidTarget = true
+                        elseif _G.TargetInmates and enemyTeam == "Inmates" then
+                            if IsLethalThreat(p) then isValidTarget = true end
+                        end
+                        
+                    elseif localTeam == "Criminals" or localTeam == "Inmates" then
+                        if _G.TargetGuards and enemyTeam == "Guards" then
+                            isValidTarget = true
+                        elseif _G.TargetCriminals and enemyTeam == "Criminals" then
+                            isValidTarget = true
+                        elseif _G.TargetInmates and enemyTeam == "Inmates" then
+                            isValidTarget = true
+                        end
+                    end
+                    
+                    if isValidTarget then
+                        local screenPos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+                        if onScreen then
+                            local mouseDist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)).Magnitude
+                            if mouseDist < shortestDistance then
+                                local raycastParams = RaycastParams.new()
+                                raycastParams.FilterDescendantsInstances = {Player.Character, p.Character}
+                                raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+                                
+                                local rayResult = Workspace:Raycast(Camera.CFrame.Position, p.Character.Head.Position - Camera.CFrame.Position, raycastParams)
+                                
+                                if not rayResult then
+                                    shortestDistance = mouseDist
+                                    closestPlayer = p
+                                end
+                            end
+                        end
+                    end
+                    
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+RunService.Heartbeat:Connect(function()
+    if _G.ApexTrackingEnabled and Player.Character and Player.Character:FindFirstChildOfClass("Tool") then
+        local isClicking = UIS:IsMouseButtonPressed(Enum.UserInputType.MouseButton1)
+        
+        if isClicking then
+            if not activeTarget or not activeTarget.Character or not activeTarget.Character:FindFirstChild("Head") or activeTarget.Character.Humanoid.Health <= 0 then
+                activeTarget = FindValidApexTarget()
+            end
+            
+            if activeTarget and activeTarget.Character and activeTarget.Character:FindFirstChild("Head") then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, activeTarget.Character.Head.Position)
+            end
+        else
+            activeTarget = nil
+        end
+    else
+        activeTarget = nil
+    end
+end)
+
+--============================================================
+-- PLAYER TAB FEATURES
+--============================================================
+
+CreateToggleCard(PagePlayer, "Super WalkSpeed", "Boosts movement speed safely under anti-cheat radar.", false, function(val)
+	_G.ApexSpeed = val
+end)
+
+CreateToggleCard(PagePlayer, "High Jump Power", "Increases jump height and power to scale prison fences.", false, function(val)
+	_G.ApexJump = val
+end)
+
+CreateToggleCard(PagePlayer, "Infinite Stamina (Never Get Tired)", "Keeps your energy locked at 100% so you never run out of breath.", false, function(val)
+	_G.ApexStamina = val
+end)
+
+--============================================================
+-- TELEPORT TAB FEATURES
+--============================================================
+
+local function TeleportTo(TargetDestinationCFrame)
+	local currentCharacter = Player.Character or Player.CharacterAdded:Wait()
+	local rootPart = currentCharacter:WaitForChild("HumanoidRootPart", 5)
+	if rootPart then
+	    rootPart.CFrame = TargetDestinationCFrame
+	end
+end
+
+CreateActionCard(PageTeleport, "Teleport: Yard", "Instantly teleports your character to the central Yard.", "TELEPORT", function()
+	TeleportTo(CFrame.new(775, 98, 2450))
+end)
+
+CreateActionCard(PageTeleport, "Teleport: Criminal Base", "Instantly teleports your character to the secret Criminal Base hideout.", "TELEPORT", function()
+	TeleportTo(CFrame.new(-940, 94, 2050))
+end)
+
+CreateActionCard(PageTeleport, "Teleport: Cafeteria", "Instantly teleports your character inside the prison cafeteria.", "TELEPORT", function()
+	TeleportTo(CFrame.new(918, 100, 2280))
+end)
+
+CreateActionCard(PageTeleport, "Teleport: Warden's Office", "Instantly teleports your character into the guard watch area.", "TELEPORT", function()
+	TeleportTo(CFrame.new(836, 100, 2300))
+end)
+
+--============================================================
+-- VISUALS TAB
+--============================================================
+
+CreateToggleCard(PageVisuals, "Advanced ESP & Role Indicators", "Draws team-colored name tags and outlines over players.", false, function(val)
+	_G.ApexESP = val
+end)
+
+RunService.RenderStepped:Connect(function()
+	for _, p in ipairs(Players:GetPlayers()) do
+		if p ~= Player and p.Character and p.Character:FindFirstChild("Head") then
+			local head = p.Character.Head
+			local billboard = head:FindFirstChild("ApexESPBillboard")
+			
+			if _G.ApexESP then
+				if not billboard then
+					billboard = Instance.new("BillboardGui")
+					billboard.Name = "ApexESPBillboard"
+					billboard.Size = UDim2.new(0, 100, 0, 40)
+					billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+					billboard.AlwaysOnTop = true
+					billboard.Parent = head
+					
+					local textLabel = Instance.new("TextLabel")
+					textLabel.Name = "ESPText"
+					textLabel.Size = UDim2.fromScale(1, 1)
+					textLabel.BackgroundTransparency = 1
+					textLabel.Font = Enum.Font.GothamBold
+					textLabel.TextSize = 12
+					textLabel.TextStrokeTransparency = 0.5
+					textLabel.Parent = billboard
+				end
+				
+				local textLabel = billboard:FindFirstChild("ESPText")
+				if textLabel and p.Team then
+					local teamName = p.Team.Name
+					local roleTitle = "INMATE"
+					local teamColor = Color3.fromRGB(255, 120, 0)
+					
+					if teamName == "Guards" then
+						roleTitle = "GUARD"
+						teamColor = Color3.fromRGB(0, 100, 255)
+					elseif teamName == "Criminals" then
+						roleTitle = "CRIMINAL"
+						teamColor = Color3.fromRGB(255, 0, 0)
+					end
+					
+					textLabel.Text = p.Name .. "\n[" .. roleTitle .. "]"
+					textLabel.TextColor3 = teamColor
+				end
+			else
+				if billboard then
+					billboard:Destroy()
+				end
+			end
+		end
+	end
+end)
+
+--============================================================
+-- CREDITS TAB
+--============================================================
+
+local function CreateCreditCard(parent, role, username, tag, customUserId)
+	local card = Instance.new("Frame")
+	card.Size = UDim2.new(1, -6, 0, 75)
+	card.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+	card.Parent = parent
+
+	local cCorner = Instance.new("UICorner")
+	cCorner.CornerRadius = UDim.new(0, 10)
+	cCorner.Parent = card
+
+	local cStroke = Instance.new("UIStroke")
+	cStroke.Thickness = 1
+	RegisterStroke(cStroke)
+	cStroke.Parent = card
+
+	if customUserId then
+		local AvatarHolder = Instance.new("ImageLabel")
+		AvatarHolder.BackgroundTransparency = 1
+		AvatarHolder.Position = UDim2.new(0, 12, 0, 12)
+		AvatarHolder.Size = UDim2.fromOffset(50, 50)
+		AvatarHolder.ScaleType = Enum.ScaleType.Fit
+		AvatarHolder.Parent = card
+
+		local avatarCorner = Instance.new("UICorner")
+		avatarCorner.CornerRadius = UDim.new(1, 0)
+		avatarCorner.Parent = AvatarHolder
+
+		pcall(function()
+			AvatarHolder.Image = "rbxthumb://type=AvatarHeadShot&id=" .. customUserId .. "&w=150&h=150"
+		end)
+	end
+
+	local xOffset = customUserId and 74 or 14
+
+	local roleLabel = Instance.new("TextLabel")
+	roleLabel.Text = role
+	roleLabel.Font = Enum.Font.GothamBold
+	roleLabel.TextSize = 10
+	roleLabel.TextColor3 = Color3.fromRGB(150, 140, 170)
+	roleLabel.Position = UDim2.new(0, xOffset, 0, 12)
+	roleLabel.Size = UDim2.new(1, -xOffset - 14, 0, 14)
+	roleLabel.BackgroundTransparency = 1
+	roleLabel.TextXAlignment = Enum.TextXAlignment.Left
+	roleLabel.Parent = card
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Text = username
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.TextSize = 15
+	nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+	nameLabel.Position = UDim2.new(0, xOffset, 0, 28)
+	nameLabel.Size = UDim2.new(1, -xOffset - 14, 0, 20)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+	nameLabel.Parent = card
+
+	local tagLabel = Instance.new("TextLabel")
+	tagLabel.Text = tag
+	tagLabel.Font = Enum.Font.GothamMedium
+	tagLabel.TextSize = 11
+	tagLabel.TextColor3 = Color3.fromRGB(150, 40, 240)
+	tagLabel.Position = UDim2.new(0, xOffset, 0, 48)
+	tagLabel.Size = UDim2.new(1, -xOffset - 14, 0, 16)
+	tagLabel.BackgroundTransparency = 1
+	tagLabel.TextXAlignment = Enum.TextXAlignment.Left
+	tagLabel.Parent = card
+end
+
+CreateCreditCard(PageCredits, "OWNER / CREATOR", "Fachero_andy", "Roblox Creator & Lead Project Owner", 5066445684)
+CreateCreditCard(PageCredits, "TIKTOK COMMUNITY", "apex_creator1", "Official TikTok Channel")
+CreateCreditCard(PageCredits, "SYSTEM DEVELOPER", "Vexilø", "Apex V26.9 Supreme Engine Developer")
+
+--============================================================
+-- SETTINGS TAB FEATURES
+--============================================================
+
+local profileCard = Instance.new("Frame")
+profileCard.Size = UDim2.new(1, -6, 0, 75)
+profileCard.BackgroundColor3 = Color3.fromRGB(18, 15, 28)
+profileCard.Parent = PageSettings
+
+local pCorner = Instance.new("UICorner")
+pCorner.CornerRadius = UDim.new(0, 10)
+pCorner.Parent = profileCard
+
+local pStroke = Instance.new("UIStroke")
+pStroke.Thickness = 1
+RegisterStroke(pStroke)
+pStroke.Parent = profileCard
+
+local SettingsAvatarHolder = Instance.new("ImageLabel")
+SettingsAvatarHolder.BackgroundTransparency = 1
+SettingsAvatarHolder.Position = UDim2.new(0, 12, 0, 12)
+SettingsAvatarHolder.Size = UDim2.fromOffset(50, 50)
+SettingsAvatarHolder.ScaleType = Enum.ScaleType.Fit
+SettingsAvatarHolder.Parent = profileCard
+
+local avatarCorner = Instance.new("UICorner")
+avatarCorner.CornerRadius = UDim.new(1, 0)
+avatarCorner.Parent = SettingsAvatarHolder
+
+pcall(function()
+	local success, content, isReady = pcall(function()
+		return Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.AvatarHeadShot, Enum.ThumbnailSize.Size150x150)
+	end)
+	if success and isReady then
+		SettingsAvatarHolder.Image = content
+	end
+end)
+
+local profNameLabel = Instance.new("TextLabel")
+profNameLabel.Text = Player.DisplayName ~= "" and Player.DisplayName .. " (@" .. Player.Name .. ")" or Player.Name
+profNameLabel.Font = Enum.Font.GothamBold
+profNameLabel.TextSize = 14
+profNameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+profNameLabel.Position = UDim2.new(0, 74, 0, 16)
+profNameLabel.Size = UDim2.new(1, -85, 0, 18)
+profNameLabel.BackgroundTransparency = 1
+profNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+profNameLabel.Parent = profileCard
+
+local estimatedCreationYear = math.floor(os.date("%Y") - (Player.AccountAge / 365))
+local profAgeLabel = Instance.new("TextLabel")
+profAgeLabel.Text = "Account Age: " .. Player.AccountAge .. " Days (Est. " .. estimatedCreationYear .. ")"
+profAgeLabel.Font = Enum.Font.GothamMedium
+profAgeLabel.TextSize = 11
+profAgeLabel.TextColor3 = Color3.fromRGB(150, 140, 170)
+profAgeLabel.Position = UDim2.new(0, 74, 0, 38)
+profAgeLabel.Size = UDim2.new(1, -85, 0, 16)
+profAgeLabel.BackgroundTransparency = 1
+profAgeLabel.TextXAlignment = Enum.TextXAlignment.Left
+profAgeLabel.Parent = profileCard
+
+CreateActionCard(PageSettings, "Discord Community", "Join our community server for updates and scripts.", "JOIN DISCORD", function(btn, state)
+	if setclipboard then
+		setclipboard("https://discord.gg/mm9QSKtSzz")
+		btn.Text = "COPIED! ✅"
+		task.wait(2)
+		btn.Text = "JOIN DISCORD"
+	end
+end)
+
+CreateActionCard(PageSettings, "Copy Server Link", "Copies the official Discord invite link to your clipboard.", "COPY LINK", function(btn, state)
+	if setclipboard then
+		setclipboard("https://discord.gg/mm9QSKtSzz")
+		btn.Text = "LINK COPIED! ✅"
+		task.wait(2)
+		btn.Text = "COPY LINK"
+	end
+end)
+
+CreateActionCard(PageSettings, "Theme: Neon Cyan", "Switches all interface outlines and borders to vibrant cyan.", "APPLY", function()
+	UpdateThemeColors(Color3.fromRGB(0, 215, 255))
+end)
+
+CreateActionCard(PageSettings, "Theme: Blood Red", "Switches all interface outlines and borders to aggressive red.", "APPLY", function()
+	UpdateThemeColors(Color3.fromRGB(255, 50, 50))
+end)
+
+CreateActionCard(PageSettings, "Theme: Toxic Green", "Switches all interface outlines and borders to cyber green.", "APPLY", function()
+	UpdateThemeColors(Color3.fromRGB(50, 255, 50))
+end)
+
+CreateToggleCard(PageSettings, "FPS Performance Booster", "Disables heavy map shadows and reflections to boost mobile FPS.", false, function(val)
+	_G.ApexFpsBooster = val
+	if val then
+		Lighting.Technology = Enum.Technology.Compatibility
+		for _, descendant in ipairs(Workspace:GetDescendants()) do
+			if descendant:IsA("BasePart") then
+				descendant.CastShadow = false
+			elseif descendant:IsA("Decal") or descendant:IsA("Texture") then
+				descendant.Transparency = 1
+			end
+		end
+	else
+		Lighting.Technology = Enum.Technology.Voxel
+	end
+end)
+
+CreateActionCard(PageSettings, "Decrease UI Scale (-)", "Shrinks the entire interface layout size down for smaller screens.", "SCALE -", function()
+	MainScale.Scale = math.clamp(MainScale.Scale - 0.1, 0.7, 1.3)
+end)
+
+CreateActionCard(PageSettings, "Increase UI Scale (+)", "Enlarges the entire interface layout size up for better visibility.", "SCALE +", function()
+	MainScale.Scale = math.clamp(MainScale.Scale + 0.1, 0.7, 1.3)
+end)
