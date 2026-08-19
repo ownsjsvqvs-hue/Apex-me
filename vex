@@ -69,7 +69,7 @@ end)
 -- CONFIG & THEME CORE
 --============================================================
 
-local DISCORD_LINK = "https://discord.gg"
+local DISCORD_LINK = "https://discord.gg/3UZxnXjxj"
 local VALID_KEYS = {["apex"] = true, ["vex"] = true, ["vexowner"] = true, ["apex-v35"] = true}
 
 local MIN_SPEED, MAX_SPEED = 16, 140
@@ -938,26 +938,156 @@ RedeemNode.MouseButton1Click:Connect(function()
 			WallStateLabel.TextColor3 = e and Theme.Success or Theme.Muted
 		end)
 
-		MakeToggle(HitboxPage, "Hitbox Expander Override", function(enabled)
-			State.B0BJR_HitboxActive = enabled
-			if not enabled then
-				for _, enemy in pairs(Players:GetPlayers()) do
-					pcall(function()
-						if enemy ~= Player and enemy.Character then
-							local root = enemy.Character:FindFirstChild("HumanoidRootPart")
-							if root then
-								root.Size = Vector3.new(2, 2, 1)
-								root.Transparency = 1
-								root.Material = Enum.Material.Plastic
+		local hitboxEnabled = false
+		local hitboxSize = 7
+		local transparentPlayers = true
+		local espEnabled = true
+		local hitboxData = {}
+		local espData = {}
+
+		local function clearChar(char)
+			if hitboxData[char] then
+				hitboxData[char] = nil
+			end
+			if espData[char] then
+				pcall(function() espData[char].bb:Destroy() end)
+				espData[char] = nil
+			end
+		end
+
+		local function applyHitbox(char, plr)
+			if not char or not char.Parent then return end
+			local hrp = char:FindFirstChild("HumanoidRootPart")
+			if not hrp then return end
+
+			clearChar(char)
+
+			if not hrp:GetAttribute("OrigSize") then
+				hrp:SetAttribute("OrigSize", hrp.Size)
+			end
+
+			hrp.Size = Vector3.new(hitboxSize, hitboxSize * 1.15, hitboxSize)
+			hrp.Transparency = 1
+
+			for _, part in ipairs(char:GetDescendants()) do
+				if part:IsA("BasePart") then
+					if part.Name == "Head" then
+						part.Transparency = 0
+					elseif part.Name ~= "HumanoidRootPart" then
+						part.Transparency = 0.97
+					end
+				end
+			end
+
+			hitboxData[char] = true
+
+			if espEnabled then
+				local bb = Instance.new("BillboardGui")
+				bb.Name = "KHUB_ESP"
+				bb.Adornee = hrp
+				bb.Size = UDim2.new(0, 110, 0, 48)
+				bb.StudsOffset = Vector3.new(0, 3.4, 0)
+				bb.AlwaysOnTop = true
+				bb.Parent = hrp
+
+				local headshot = Instance.new("ImageLabel", bb)
+				headshot.Size = UDim2.new(0, 26, 0, 26)
+				headshot.Position = UDim2.new(0.5, -13, 0, 0)
+				headshot.BackgroundColor3 = Color3.fromRGB(30, 15, 45)
+				headshot.Image = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. plr.UserId .. "&width=100&height=100&format=png"
+				Instance.new("UICorner", headshot).CornerRadius = UDim.new(1, 0)
+
+				local nameLbl = Instance.new("TextLabel", bb)
+				nameLbl.Size = UDim2.new(1, 0, 0, 16)
+				nameLbl.Position = UDim2.new(0, 0, 0, 28)
+				nameLbl.BackgroundTransparency = 1
+				nameLbl.Text = plr.DisplayName
+				nameLbl.Font = Enum.Font.GothamBold
+				nameLbl.TextSize = 11
+				nameLbl.TextColor3 = Color3.new(1, 1, 1)
+				nameLbl.TextStrokeTransparency = 0.4
+				espData[char] = {bb = bb}
+			end
+		end
+
+		local function updateAll()
+			for _, plr in ipairs(Players:GetPlayers()) do
+				if plr ~= Player and plr.Character then
+					if hitboxEnabled then
+						applyHitbox(plr.Character, plr)
+					else
+						local char = plr.Character
+						local hrp = char:FindFirstChild("HumanoidRootPart")
+						if hrp and hrp:GetAttribute("OrigSize") then
+							hrp.Size = hrp:GetAttribute("OrigSize")
+							hrp.Transparency = 1
+						end
+						for _, part in ipairs(char:GetDescendants()) do
+							if part:IsA("BasePart") then
+								part.Transparency = 0
 							end
 						end
-					end)
+						clearChar(char)
+					end
 				end
+			end
+		end
+
+		local function setupPlayer(plr)
+			if plr == Player then return end
+			plr.CharacterAdded:Connect(function(char)
+				task.wait(0.6)
+				if hitboxEnabled then applyHitbox(char, plr) end
+			end)
+			if plr.Character and hitboxEnabled then
+				task.spawn(function()
+					task.wait(0.3)
+					applyHitbox(plr.Character, plr)
+				end)
+			end
+		end
+
+		for _, p in ipairs(Players:GetPlayers()) do
+			setupPlayer(p)
+		end
+		Players.PlayerAdded:Connect(setupPlayer)
+
+		local function EnableHitbox(size)
+			hitboxEnabled = true
+			hitboxSize = size or 7
+			updateAll()
+		end
+
+		local function DisableHitbox()
+			hitboxEnabled = false
+			updateAll()
+		end
+
+		local function SetHitboxSize(size)
+			hitboxSize = math.clamp(size, 3, 18)
+			if hitboxEnabled then updateAll() end
+		end
+
+		local function ToggleTransparent(state)
+			transparentPlayers = state
+			if hitboxEnabled then updateAll() end
+		end
+
+		local function ToggleESP(state)
+			espEnabled = state
+			if hitboxEnabled then updateAll() end
+		end
+
+		MakeToggle(HitboxPage, "Hitbox Expander Override", function(enabled)
+			if enabled then
+				EnableHitbox(hitboxSize)
+			else
+				DisableHitbox()
 			end
 		end)
 		
-		MakeSlider(HitboxPage, "HITBOX MULTIPLIER SIZE", State.B0BJR_MinMult, State.B0BJR_MaxMult, State.B0BJR_Multiplier, function(val)
-			State.B0BJR_Multiplier = val
+		MakeSlider(HitboxPage, "HITBOX MULTIPLIER SIZE", 3, 18, hitboxSize, function(val)
+			SetHitboxSize(val)
 		end)
 		
 		MakeToggle(HitboxPage, "Proximity 8.5 Stud Bomb Transfer", function(e) 
@@ -1111,21 +1241,6 @@ RedeemNode.MouseButton1Click:Connect(function()
 					local moveDir = humanoid.MoveDirection
 					local delta = moveDir * (State.Speed * dt)
 					rootPart.CFrame = rootPart.CFrame + Vector3.new(delta.X, 0, delta.Z)
-				end
-				
-				if State.B0BJR_HitboxActive then
-					for _, p in ipairs(Players:GetPlayers()) do
-						if p ~= Player and p.Character and Player.Team ~= p.Team then
-							local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-							if hrp then
-								hrp.Size = Vector3.new(State.B0BJR_Multiplier, State.B0BJR_Multiplier, State.B0BJR_Multiplier)
-								hrp.Transparency = 0.65
-								hrp.Color = Theme.Accent
-								hrp.Material = Enum.Material.ForceField
-								hrp.CanCollide = false
-							end
-						end
-					end
 				end
 				
 				if State.BombTransferEnabled and rootPart and character:FindFirstChild("Bomb") then
