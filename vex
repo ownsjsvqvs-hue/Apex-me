@@ -3,7 +3,9 @@
 --            TIME BOMB DUELS EDITION • BY VEX
 --============================================================
 
-getgenv().ApexIcon = "rbxassetid://116770829809843"
+getgenv().ApexIcon = "rbxthumb://type=Asset&id=116770829809843&w=420&h=420"
+
+
 
 
 
