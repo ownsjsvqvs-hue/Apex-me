@@ -3,7 +3,7 @@
 --            TIME BOMB DUELS EDITION • BY VEX
 --============================================================
 
-getgenv().ApexIcon = "rbxassetid://94862481751926"
+getgenv().ApexIcon = "rbxassetid://116770829809843"
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
@@ -70,7 +70,7 @@ end)
 --============================================================
 
 local DISCORD_LINK = "https://discord.gg/3UZxnXjxj"
-local VALID_KEYS = {["apex"] = true, ["vex"] = true, ["vexowner"] = true, ["apex-v35"] = true}
+local VALID_KEYS = {["Apex"] = true, ["vex"] = true, ["vexowner"] = true, ["apex"] = true}
 
 local MIN_SPEED, MAX_SPEED = 16, 140
 local MIN_JUMP, MAX_JUMP, NORMAL_GAME_JUMP = 30, 180, 50
@@ -390,7 +390,7 @@ FooterInfo.Size = UDim2.new(1, 0, 0, 24)
 FooterInfo.Position = UDim2.new(0, 0, 0, 412)
 FooterInfo.BackgroundTransparency = 1
 FooterInfo.Font = Enum.Font.GothamBold
-FooterInfo.Text = "Wsp cuh yo bold head ahhh😭🙏"
+FooterInfo.Text = "put the key fast bro😭🙏"
 FooterInfo.TextColor3 = Theme.Muted
 FooterInfo.TextSize = 10
 FooterInfo.Parent = KeyBody
